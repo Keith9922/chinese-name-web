@@ -9,6 +9,7 @@ from models.schemas import (
     NameGenerationResponse,
     CheckoutSessionRequest,
     CheckoutSessionResponse,
+    CheckoutSessionStatusResponse,
     WebhookResponse,
     HealthResponse,
     ErrorResponse,
@@ -52,9 +53,19 @@ async def create_checkout_session(request: CheckoutSessionRequest):
     """
     try:
         checkout_url = stripe_service.create_checkout_session(
-            name_result=request.nameResult.model_dump()
+            name_result=request.nameResult.model_dump(),
+            plan_id=request.planId,
         )
         return CheckoutSessionResponse(checkoutUrl=checkout_url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/checkout-session/{session_id}", response_model=CheckoutSessionStatusResponse)
+async def get_checkout_session(session_id: str):
+    """Retrieve checkout session details after redirect."""
+    try:
+        return stripe_service.get_checkout_session(session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

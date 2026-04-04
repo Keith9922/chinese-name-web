@@ -17,13 +17,16 @@ import NameResult from "./NameResult";
 
 export default function NameForm() {
   const [englishName, setEnglishName] = useState("");
-  const [gender, setGender] = useState<"male" | "female" | "other">("other");
+  const [gender, setGender] = useState<"" | "male" | "female" | "other">("");
   const [birthDate, setBirthDate] = useState("");
+  const [birthTime, setBirthTime] = useState("");
   const [result, setResult] = useState<{
     chineseName: string;
     pinyin: string;
     meaning: string;
     culturalExplanation: string;
+    pronunciationMapping: string;
+    elementAnalysis: string;
     suggestedCharacters: { character: string; meaning: string }[];
   } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +38,10 @@ export default function NameForm() {
     setLoading(true);
 
     try {
+      if (!gender) {
+        throw new Error("Gender is required");
+      }
+
       const response = await fetch("/api/generate-name", {
         method: "POST",
         headers: {
@@ -44,6 +51,7 @@ export default function NameForm() {
           englishName,
           gender,
           birthDate,
+          birthTime: birthTime || undefined,
         }),
       });
 
@@ -63,13 +71,15 @@ export default function NameForm() {
   const resetForm = () => {
     setResult(null);
     setEnglishName("");
-    setGender("other");
+    setGender("");
     setBirthDate("");
+    setBirthTime("");
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto">
-      <Card className="relative overflow-hidden rounded-2xl shadow-lg border border-stone-200 bg-white">
+    <div className="w-full">
+      <div className="max-w-lg mx-auto">
+        <Card className="relative overflow-hidden rounded-2xl shadow-lg border border-stone-200 bg-white">
         {/* Top decorative line */}
         <div
           className="absolute top-0 left-0 right-0 h-1"
@@ -137,10 +147,15 @@ export default function NameForm() {
                 value={gender}
                 onValueChange={(value) => setGender(value as "male" | "female" | "other")}
               >
-                <SelectTrigger className="h-12 bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl data-[placeholder:text-stone-400]">
+                <SelectTrigger className="h-12 w-full bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl data-[placeholder:text-stone-400]">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-stone-200 text-stone-800">
+                <SelectContent
+                  align="start"
+                  sideOffset={8}
+                  alignItemWithTrigger={false}
+                  className="bg-white border-stone-200 text-stone-800 shadow-lg"
+                >
                   <SelectItem value="male" className="focus:bg-stone-100 focus:text-stone-800">
                     Male
                   </SelectItem>
@@ -155,22 +170,47 @@ export default function NameForm() {
             </div>
 
             {/* Birth Date */}
-            <div className="space-y-2">
-              <label
-                htmlFor="birthDate"
-                className="text-sm font-medium text-stone-600"
-              >
-                Birth Date
-              </label>
-              <Input
-                id="birthDate"
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                required
-                className="h-12 bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl transition-all duration-300 [color-scheme:light]"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor="birthDate"
+                  className="text-sm font-medium text-stone-600"
+                >
+                  Birth Date
+                </label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  required
+                  className="h-12 bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl transition-all duration-300 [color-scheme:light]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="birthTime"
+                  className="text-sm font-medium text-stone-600"
+                >
+                  Birth Time
+                  <span className="ml-2 text-xs font-normal text-stone-400">
+                    Optional
+                  </span>
+                </label>
+                <Input
+                  id="birthTime"
+                  type="time"
+                  value={birthTime}
+                  onChange={(e) => setBirthTime(e.target.value)}
+                  className="h-12 bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl transition-all duration-300 [color-scheme:light]"
+                />
+              </div>
             </div>
+
+            <p className="-mt-2 text-xs text-stone-400">
+              Add a birth time if you want the name to lean on a more precise element profile.
+            </p>
 
             {/* Error Message */}
             <AnimatePresence>
@@ -227,7 +267,8 @@ export default function NameForm() {
             </span>
           </motion.div>
         </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* Results */}
       <AnimatePresence mode="wait">
@@ -237,7 +278,7 @@ export default function NameForm() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.98 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-8"
+            className="mt-10 max-w-6xl mx-auto"
           >
             <NameResult result={result} />
           </motion.div>
@@ -252,7 +293,7 @@ export default function NameForm() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ delay: 0.3 }}
-            className="mt-6 text-center"
+            className="mt-6 text-center max-w-6xl mx-auto"
           >
             <Button
               onClick={resetForm}

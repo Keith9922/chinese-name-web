@@ -2,66 +2,30 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Crown, Download, Sparkles, Shield, Zap, Heart, Check, Star } from "lucide-react";
+import { Crown, Download, Sparkles, Shield, Zap, Heart, Star, type LucideIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { PAID_PLANS, type PaidPlanId } from "@/lib/pricing";
 
 interface PremiumUnlockProps {
   chineseName: string;
   pinyin: string;
   meaning: string;
-  isUnlocked: boolean;
 }
 
-function PremiumFeature({ icon: Icon, text }: { icon: any; text: string }) {
+function PremiumFeature({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center"
-        style={{
-          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(220, 38, 38, 0.1))",
-          border: "1px solid rgba(245, 158, 11, 0.2)",
-        }}
-      >
-        <Icon className="w-4 h-4 text-amber-400" />
-      </div>
-      <span className="text-zinc-300">{text}</span>
-    </div>
-  );
-}
-
-function PriceTag() {
-  return (
-    <div className="text-center">
-      <div className="relative inline-block">
-        {/* Glow effect */}
+    <div className="rounded-2xl border border-stone-200 bg-stone-50/90 p-3.5 text-left">
+      <div className="flex items-center gap-3 text-sm">
         <div
-          className="absolute -inset-4 rounded-2xl blur-xl opacity-30"
+          className="flex h-8 w-8 items-center justify-center rounded-lg"
           style={{
-            background: "linear-gradient(135deg, rgba(245, 158, 11, 0.5), rgba(220, 38, 38, 0.3))",
+            background: "linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(220, 38, 38, 0.08))",
+            border: "1px solid rgba(245, 158, 11, 0.18)",
           }}
-        />
-
-        {/* Price */}
-        <div className="relative flex items-baseline justify-center gap-1">
-          <span className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent">
-            $2.99
-          </span>
-          <span className="text-zinc-500 text-sm">one-time</span>
+        >
+          <Icon className="w-4 h-4 text-amber-600" />
         </div>
-
-        {/* Savings badge */}
-        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-          Save 50%
-        </div>
+        <span className="text-sm leading-relaxed text-stone-600">{text}</span>
       </div>
     </div>
   );
@@ -69,12 +33,12 @@ function PriceTag() {
 
 function TestimonialBadge() {
   return (
-    <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
+    <div className="flex items-center justify-center gap-2 text-sm text-stone-400">
       <div className="flex -space-x-2">
         {[...Array(4)].map((_, i) => (
           <div
             key={i}
-            className="w-6 h-6 rounded-full border-2 border-zinc-900"
+            className="w-6 h-6 rounded-full border-2 border-white"
             style={{
               background: `linear-gradient(135deg, hsl(${i * 30 + 20}, 70%, 60%), hsl(${i * 30 + 40}, 70%, 50%))`,
             }}
@@ -86,18 +50,27 @@ function TestimonialBadge() {
   );
 }
 
+function CompactFeaturePill({ text }: { text: string }) {
+  return (
+    <span className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-xs text-stone-500">
+      {text}
+    </span>
+  );
+}
+
 export default function PremiumUnlock({
   chineseName,
   pinyin,
   meaning,
-  isUnlocked,
 }: PremiumUnlockProps) {
-  const [loading, setLoading] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<PaidPlanId>("signature");
+  const [loadingPlanId, setLoadingPlanId] = useState<PaidPlanId | null>(null);
   const [error, setError] = useState("");
-  const [showDialog, setShowDialog] = useState(false);
+
+  const selectedPlan = PAID_PLANS.find((plan) => plan.id === selectedPlanId) ?? PAID_PLANS[0];
 
   const handleCheckout = async () => {
-    setLoading(true);
+    setLoadingPlanId(selectedPlanId);
     setError("");
 
     try {
@@ -107,6 +80,7 @@ export default function PremiumUnlock({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          planId: selectedPlanId,
           nameResult: { chineseName, pinyin, meaning },
         }),
       });
@@ -122,21 +96,17 @@ export default function PremiumUnlock({
     } catch {
       setError("Unable to start checkout. Please try again.");
     } finally {
-      setLoading(false);
+      setLoadingPlanId(null);
     }
   };
 
-  if (isUnlocked) {
-    return null;
-  }
-
   return (
-    <div className="mt-8 relative">
+    <div id="premium-upgrade" className="relative w-full">
       {/* Background glow */}
       <div
-        className="absolute -inset-1 rounded-3xl opacity-20 blur-xl"
+        className="absolute -inset-1 rounded-3xl opacity-15 blur-xl"
         style={{
-          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(220, 38, 38, 0.2))",
+          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(220, 38, 38, 0.12))",
         }}
       />
 
@@ -144,15 +114,16 @@ export default function PremiumUnlock({
       <div
         className="relative rounded-3xl overflow-hidden"
         style={{
-          background: "linear-gradient(180deg, rgba(30, 20, 20, 0.98), rgba(15, 10, 10, 0.99))",
-          border: "1px solid rgba(245, 158, 11, 0.15)",
+          background: "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 244, 0.98))",
+          border: "1px solid rgba(217, 119, 6, 0.14)",
+          boxShadow: "0 24px 80px -40px rgba(146, 64, 14, 0.18)",
         }}
       >
         {/* Top decorative line */}
         <div
           className="absolute top-0 left-0 right-0 h-px"
           style={{
-            background: "linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.5), rgba(220, 38, 38, 0.5), transparent)",
+            background: "linear-gradient(90deg, transparent, rgba(217, 119, 6, 0.35), rgba(185, 28, 28, 0.28), transparent)",
           }}
         />
 
@@ -164,166 +135,204 @@ export default function PremiumUnlock({
           }}
         />
 
-        <div className="relative p-8">
+        <div className="relative p-6 md:p-7">
           {/* Header */}
-          <div className="text-center mb-6">
-            {/* Crown icon with glow */}
-            <div className="relative inline-block mb-4">
+          <div className="mb-6 text-center">
+            <div className="relative mb-3 inline-block">
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                className="flex h-14 w-14 items-center justify-center rounded-2xl"
                 style={{
-                  background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(220, 38, 38, 0.15))",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                  background: "linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(220, 38, 38, 0.08))",
+                  border: "1px solid rgba(245, 158, 11, 0.18)",
                 }}
               >
-                <Crown className="w-8 h-8 text-amber-400" />
+                <Crown className="h-7 w-7 text-amber-600" />
               </div>
               <div
                 className="absolute inset-0 rounded-2xl animate-ping"
                 style={{
-                  background: "rgba(245, 158, 11, 0.2)",
+                  background: "rgba(245, 158, 11, 0.08)",
                   animationDuration: "3s",
                 }}
               />
             </div>
 
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Unlock Your{" "}
+            <h3 className="mb-2 text-2xl font-bold text-stone-900">
+              Keep This Name as a{" "}
               <span className="bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent">
-                Calligraphy Card
+                Keepsake Card
               </span>
             </h3>
 
-            <p className="text-zinc-400 text-sm max-w-sm mx-auto">
-              Get a beautiful, downloadable artwork featuring your personalized Chinese name
+            <p className="mx-auto max-w-2xl text-sm text-stone-500">
+              If this result feels right, you can turn it into a polished card without changing the main experience above.
             </p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-3 mb-6">
-            <PremiumFeature icon={Download} text="HD calligraphy card (2400x1600px)" />
-            <PremiumFeature icon={Zap} text="Instant download - no waiting" />
-            <PremiumFeature icon={Shield} text="Lifetime access - yours forever" />
-            <PremiumFeature icon={Star} text="3 premium style options" />
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
+            {PAID_PLANS.map((plan) => {
+              const selected = plan.id === selectedPlanId;
+              return (
+                <motion.button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => setSelectedPlanId(plan.id)}
+                  whileHover={{ y: -3, scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={`relative h-full rounded-2xl border p-4 text-left transition-all duration-300 ${
+                    selected
+                      ? "border-amber-300 bg-white shadow-[0_16px_40px_-30px_rgba(245,158,11,0.3)]"
+                      : "border-stone-200 bg-stone-50/95 hover:border-stone-300"
+                  }`}
+                >
+                  {plan.badge ? (
+                    <div className="mb-3 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-red-500 px-3 py-1 text-[11px] font-semibold text-white">
+                      {plan.badge}
+                    </div>
+                  ) : (
+                    <div className="mb-3 h-6" />
+                  )}
+
+                  <div className="mb-2 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-lg font-semibold text-stone-900">{plan.name}</p>
+                      <p className="mt-1 text-sm text-stone-500">{plan.tagline}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-2xl font-bold text-transparent">
+                        {plan.priceLabel}
+                      </div>
+                      <div className="text-xs text-stone-400">one-time</div>
+                    </div>
+                  </div>
+
+                  <p className="mb-3 text-sm leading-relaxed text-stone-500">
+                    {plan.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {plan.features.slice(0, 3).map((feature) => (
+                      <CompactFeaturePill key={feature} text={feature} />
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between text-xs text-stone-400">
+                    <span>{plan.resolutionLabel}</span>
+                    <span>{selected ? "Selected" : "Tap to choose"}</span>
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
 
-          {/* Price */}
-          <PriceTag />
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <PremiumFeature icon={Download} text={selectedPlan.resolutionLabel} />
+            <PremiumFeature icon={Zap} text="Instant unlock after payment" />
+            <PremiumFeature icon={Shield} text="Secure card payment and lifetime access" />
+            <PremiumFeature
+              icon={Star}
+              text={
+                selectedPlan.id === "signature"
+                  ? "All three visual styles unlocked"
+                  : "Curated single-style keepsake"
+              }
+            />
+          </div>
 
-          {/* CTA Button */}
-          <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogTrigger>
-              <motion.button
-                className="w-full mt-6 h-12 bg-gradient-to-r from-red-700 via-red-600 to-amber-600 hover:from-red-600 hover:via-red-500 hover:to-amber-500 text-white rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group relative overflow-hidden"
-                whileHover={{ scale: 1.01, y: -2 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => setShowDialog(true)}
-              >
-                {/* Shimmer */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                  animate={{ x: ["-100%", "100%"] }}
-                  transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-                />
-                <Crown className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform" />
-                <span className="relative z-10">Unlock Premium</span>
-              </motion.button>
-            </DialogTrigger>
+          <div className="mb-5 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-white p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="mb-2 text-xs uppercase tracking-[0.2em] text-amber-700/80">
+                  Selected Plan
+                </p>
+                <p className="text-lg font-semibold text-stone-900">{selectedPlan.name}</p>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-500">
+                  {selectedPlan.description}
+                </p>
+              </div>
 
-            <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
-              <DialogHeader>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(220, 38, 38, 0.15))",
-                      border: "1px solid rgba(245, 158, 11, 0.3)",
-                    }}
-                  >
-                    <Crown className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-white">Unlock Calligraphy Card</DialogTitle>
-                    <DialogDescription className="text-zinc-400">
-                      Premium downloadable artwork
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="py-6">
-                {/* What's included */}
-                <div className="bg-zinc-900/50 rounded-xl p-4 mb-4">
-                  <p className="text-sm text-zinc-400 mb-3">You will receive:</p>
-                  <ul className="space-y-2">
-                    {[
-                      "HD calligraphy card (2400x1600px)",
-                      "3 style options (Classical, Modern, Seal)",
-                      "Instant download",
-                      "Lifetime access",
-                    ].map((item, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
-                        <Check className="w-4 h-4 text-green-500" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Price confirmation */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-950/30 to-amber-950/30 border border-red-500/20 mb-4">
-                  <span className="text-zinc-300">Total</span>
-                  <span className="text-2xl font-bold text-white">$2.99</span>
-                </div>
-
-                {/* Pay button */}
-                <Button
-                  onClick={handleCheckout}
-                  disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-red-700 to-amber-600 hover:from-red-600 hover:to-amber-500 text-white rounded-xl font-medium transition-all duration-300"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5 mr-2" />
-                      Pay $2.99
-                    </>
-                  )}
-                </Button>
-
-                {error && (
-                  <p className="text-sm text-red-500 mt-3 text-center">{error}</p>
-                )}
-
-                {/* Trust indicators */}
-                <div className="flex items-center justify-center gap-4 mt-4 text-xs text-zinc-600">
-                  <span className="flex items-center gap-1">
-                    <Shield className="w-3 h-3" />
-                    Secure payment
+              <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-500">
+                  {selectedPlan.availableStyles.length} style{selectedPlan.availableStyles.length > 1 ? "s" : ""}
+                </span>
+                <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-500">
+                  {selectedPlan.resolutionLabel}
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="bg-gradient-to-r from-amber-500 to-red-500 bg-clip-text text-3xl font-bold text-transparent">
+                    {selectedPlan.priceLabel}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Heart className="w-3 h-3" />
-                    Made with love
-                  </span>
+                  <span className="text-sm text-stone-400">one-time</span>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-stone-200 bg-white/90 p-3 text-sm text-stone-600">
+                Your generated name <span className="font-medium text-stone-900">{chineseName}</span> will be attached to this purchase.
+              </div>
+              <div className="rounded-xl border border-stone-200 bg-white/90 p-3 text-sm text-stone-600">
+                Includes {selectedPlan.availableStyles.join(", ")} presentation style{selectedPlan.availableStyles.length > 1 ? "s" : ""}.
+              </div>
+            </div>
+          </div>
+
+          <motion.button
+            className="w-full md:max-w-xl md:mx-auto h-11 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:via-red-600 hover:to-amber-600 text-white rounded-xl font-medium transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 group relative overflow-hidden"
+            whileHover={{ scale: 1.01, y: -2 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={handleCheckout}
+            disabled={loadingPlanId !== null}
+          >
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
+            />
+            {loadingPlanId ? (
+              <>
+                <Loader2 className="w-5 h-5 relative z-10 animate-spin" />
+                <span className="relative z-10">Preparing checkout...</span>
+              </>
+            ) : (
+              <>
+                <Crown className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform" />
+                <span className="relative z-10">
+                  {selectedPlan.ctaLabel} for {selectedPlan.priceLabel}
+                </span>
+              </>
+            )}
+          </motion.button>
+
+          {error && (
+            <p className="text-sm text-red-500 mt-3 text-center">{error}</p>
+          )}
 
           {/* Social proof */}
           <div className="mt-6">
             <TestimonialBadge />
           </div>
 
+          <div className="mt-4 flex items-center justify-center gap-5 text-xs text-stone-400">
+            <span className="flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-amber-600" />
+              Secure checkout
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Heart className="w-3.5 h-3.5 text-red-500" />
+              One-time purchase
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              Instant unlock
+            </span>
+          </div>
+
           {/* Bottom decorative line */}
           <div
             className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-px"
             style={{
-              background: "linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), transparent)",
+              background: "linear-gradient(90deg, transparent, rgba(217, 119, 6, 0.18), transparent)",
             }}
           />
         </div>

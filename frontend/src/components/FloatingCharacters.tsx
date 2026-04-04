@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useSpring } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 // 百家姓 - Hundred Family Surnames (只用姓氏，去掉无关符号)
 const surnames = [
@@ -165,14 +164,6 @@ function SealStamp({ x, y, delay }: { x: number; y: number; delay: number }) {
 }
 
 export default function FloatingCharacters() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {/* 缓慢下降的姓氏瀑布 */}

@@ -20,15 +20,34 @@ class NameGenerationResponse(BaseModel):
     pinyin: str = Field(..., description="Pinyin pronunciation with tone marks")
     meaning: str = Field(..., description="English meaning of the full name")
     culturalExplanation: str = Field(..., description="Cultural significance explanation")
+    pronunciationMapping: str = Field(..., description="How the Chinese name maps to the English pronunciation or impression")
+    elementAnalysis: str = Field(..., description="How the birth date or seasonal element profile influenced the name")
     suggestedCharacters: List[SuggestedCharacter] = Field(..., description="List of suggested characters with meanings")
 
 
+class CheckoutNameResult(BaseModel):
+    chineseName: str = Field(..., description="The generated Chinese name")
+    pinyin: str = Field(..., description="Pinyin pronunciation with tone marks")
+    meaning: str = Field(..., description="English meaning of the full name")
+
+
 class CheckoutSessionRequest(BaseModel):
-    nameResult: NameGenerationResponse = Field(..., description="The generated name result")
+    nameResult: CheckoutNameResult = Field(..., description="The generated name result")
+    planId: str = Field(..., description="Selected pricing plan ID")
 
 
 class CheckoutSessionResponse(BaseModel):
     checkoutUrl: str = Field(..., description="Stripe checkout session URL")
+
+
+class CheckoutSessionStatusResponse(BaseModel):
+    sessionId: str = Field(..., description="Checkout session ID")
+    planId: str = Field(..., description="Selected pricing plan ID")
+    planName: str = Field(..., description="Display name of the selected plan")
+    amountUsd: float = Field(..., description="Paid amount in USD")
+    paymentStatus: str = Field(..., description="Payment status")
+    isMock: bool = Field(False, description="Whether this session was created in mock mode")
+    nameResult: CheckoutNameResult = Field(..., description="Name result included in checkout metadata")
 
 
 class WebhookResponse(BaseModel):

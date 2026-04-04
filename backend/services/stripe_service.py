@@ -3,17 +3,31 @@ Stripe service for handling payments and checkout sessions.
 """
 import os
 import uuid
-from typing import Optional
+from datetime import datetime
+from typing import Dict
 
 
 class StripeService:
     """Service for Stripe payment integration."""
 
+    PLAN_DEFINITIONS = {
+        "keepsake": {
+            "name": "Keepsake Card",
+            "description": "One premium calligraphy card with a refined classical style",
+            "amount_usd": 2.99,
+        },
+        "signature": {
+            "name": "Signature Collection",
+            "description": "Three artistic styles with a more premium presentation and export quality",
+            "amount_usd": 6.99,
+        },
+    }
+
     def __init__(self):
         self.secret_key = os.getenv("STRIPE_SECRET_KEY")
         self.webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-        self.price_usd = 2.99
+        self.mock_sessions: Dict[str, dict] = {}
 
     def _get_stripe_client(self):
         """Get Stripe client."""
@@ -21,12 +35,22 @@ class StripeService:
         stripe.api_key = self.secret_key
         return stripe
 
-    def create_checkout_session(self, name_result: dict) -> str:
+    def _is_mock_mode(self) -> bool:
+        return not self.secret_key or "your_stripe" in self.secret_key.lower()
+
+    def _get_plan(self, plan_id: str) -> dict:
+        plan = self.PLAN_DEFINITIONS.get(plan_id)
+        if not plan:
+            raise ValueError(f"Unsupported plan: {plan_id}")
+        return plan
+
+    def create_checkout_session(self, name_result: dict, plan_id: str) -> str:
         """
         Create a Stripe checkout session for the premium unlock.
 
         Args:
             name_result: The generated name data to include in metadata
+            plan_id: The selected pricing plan
 
         Returns:
             The checkout session URL
@@ -34,10 +58,31 @@ class StripeService:
         Raises:
             Exception: If session creation fails
         """
-        stripe = self._get_stripe_client()
+        plan = self._get_plan(plan_id)
 
         # Generate a unique session ID
         session_id = str(uuid.uuid4())
+
+        if self._is_mock_mode():
+            self.mock_sessions[session_id] = {
+                "sessionId": session_id,
+                "planId": plan_id,
+                "planName": plan["name"],
+                "amountUsd": plan["amount_usd"],
+                "paymentStatus": "paid",
+                "isMock": True,
+                "nameResult": {
+                    "chineseName": name_result.get("chineseName", ""),
+                    "pinyin": name_result.get("pinyin", ""),
+                    "meaning": name_result.get("meaning", ""),
+                },
+            }
+            return (
+                f"{self.frontend_url}/success"
+                f"?session_id={session_id}"
+            )
+
+        stripe = self._get_stripe_client()
 
         try:
             # Create checkout session
@@ -48,33 +93,64 @@ class StripeService:
                         "price_data": {
                             "currency": "usd",
                             "product_data": {
-                                "name": "Chinese Name Premium Unlock",
-                                "description": f"Unlock your personalized Chinese name: {name_result.get('chineseName', 'N/A')}",
+                                "name": plan["name"],
+                                "description": (
+                                    f"{plan['description']}: "
+                                    f"{name_result.get('chineseName', 'N/A')}"
+                                ),
                                 "metadata": {
                                     "chineseName": name_result.get("chineseName", ""),
                                     "pinyin": name_result.get("pinyin", ""),
+                                    "meaning": name_result.get("meaning", ""),
+                                    "planId": plan_id,
                                 },
                             },
-                            "unit_amount": int(self.price_usd * 100),  # $2.99 in cents
+                            "unit_amount": int(plan["amount_usd"] * 100),
                         },
                         "quantity": 1,
                     }
                 ],
                 mode="payment",
                 success_url=f"{self.frontend_url}/success?session_id={{CHECKOUT_SESSION_ID}}",
-                cancel_url=f"{self.frontend_url}/cancel",
+                cancel_url=f"{self.frontend_url}/cancel?plan={plan_id}",
                 metadata={
                     "session_id": session_id,
                     "chinese_name": name_result.get("chineseName", ""),
-                    "english_name": name_result.get("englishName", ""),
+                    "pinyin": name_result.get("pinyin", ""),
+                    "meaning": name_result.get("meaning", ""),
+                    "plan_id": plan_id,
                 },
-                expires_at=int((datetime.now().timestamp() + 1800)),  # 30 minutes expiry
+                expires_at=int(datetime.now().timestamp() + 1800),
             )
 
             return session.url
 
         except stripe.error.StripeError as e:
             raise Exception(f"Failed to create checkout session: {str(e)}")
+
+    def get_checkout_session(self, session_id: str) -> dict:
+        """Retrieve checkout session details for the success page."""
+        if session_id in self.mock_sessions:
+            return self.mock_sessions[session_id]
+
+        stripe = self._get_stripe_client()
+        session = stripe.checkout.Session.retrieve(session_id)
+        plan_id = session.metadata.get("plan_id", "keepsake")
+        plan = self._get_plan(plan_id)
+
+        return {
+            "sessionId": session.id,
+            "planId": plan_id,
+            "planName": plan["name"],
+            "amountUsd": plan["amount_usd"],
+            "paymentStatus": session.payment_status,
+            "isMock": False,
+            "nameResult": {
+                "chineseName": session.metadata.get("chinese_name", ""),
+                "pinyin": session.metadata.get("pinyin", ""),
+                "meaning": session.metadata.get("meaning", ""),
+            },
+        }
 
     def verify_webhook_signature(self, payload: bytes, signature: str) -> dict:
         """
@@ -119,9 +195,6 @@ class StripeService:
         # 3. Potentially send confirmation email
 
         return unlock_code
-
-
-from datetime import datetime
 
 # Singleton instance
 stripe_service = StripeService()

@@ -2,17 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, RotateCcw, Sparkles, Heart } from "lucide-react";
+import { Download, Sparkles, Heart } from "lucide-react";
+import type { CardStyle } from "@/lib/pricing";
 
 interface CalligraphyCardProps {
   chineseName: string;
   pinyin: string;
   meaning: string;
-  style?: "classical" | "modern" | "seal";
+  style?: CardStyle;
+  availableStyles?: CardStyle[];
+  resolutionMultiplier?: number;
+  planName?: string;
+  resolutionLabel?: string;
 }
 
 type StyleOption = {
-  id: "classical" | "modern" | "seal";
+  id: CardStyle;
   label: string;
   description: string;
   preview: string;
@@ -45,9 +50,10 @@ function generateCanvas(
   chineseName: string,
   pinyin: string,
   meaning: string,
-  style: string
+  style: string,
+  resolutionMultiplier: number
 ) {
-  const scale = 3;
+  const scale = resolutionMultiplier;
   canvas.width = 600 * scale;
   canvas.height = 400 * scale;
   ctx.scale(scale, scale);
@@ -152,15 +158,17 @@ function generateCanvas(
 }
 
 function StyleSelector({
+  options,
   selectedStyle,
   onStyleChange,
 }: {
-  selectedStyle: "classical" | "modern" | "seal";
-  onStyleChange: (style: "classical" | "modern" | "seal") => void;
+  options: StyleOption[];
+  selectedStyle: CardStyle;
+  onStyleChange: (style: CardStyle) => void;
 }) {
   return (
     <div className="flex justify-center gap-3 mb-6">
-      {styleOptions.map((option) => (
+      {options.map((option) => (
         <motion.button
           key={option.id}
           onClick={() => onStyleChange(option.id)}
@@ -245,11 +253,19 @@ export default function CalligraphyCard({
   pinyin,
   meaning,
   style: initialStyle = "classical",
+  availableStyles = ["classical", "modern", "seal"],
+  resolutionMultiplier = 3,
+  planName = "Calligraphy Card",
+  resolutionLabel = "HD PNG",
 }: CalligraphyCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [style, setStyle] = useState<"classical" | "modern" | "seal">(initialStyle);
+  const visibleStyleOptions = styleOptions.filter((option) => availableStyles.includes(option.id));
+  const [style, setStyle] = useState<CardStyle>(
+    availableStyles.includes(initialStyle) ? initialStyle : availableStyles[0] ?? "classical"
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const hasGenerated = useRef(false);
+  const effectiveStyle = availableStyles.includes(style) ? style : availableStyles[0] ?? "classical";
 
   useEffect(() => {
     if (!canvasRef.current || !chineseName || hasGenerated.current) return;
@@ -259,11 +275,11 @@ export default function CalligraphyCard({
     if (!ctx) return;
 
     hasGenerated.current = true;
-    generateCanvas(canvas, ctx, chineseName, pinyin, meaning, style);
-  }, [chineseName, pinyin, meaning, style]);
+    generateCanvas(canvas, ctx, chineseName, pinyin, meaning, effectiveStyle, resolutionMultiplier);
+  }, [chineseName, effectiveStyle, pinyin, meaning, resolutionMultiplier]);
 
-  const handleStyleChange = (newStyle: "classical" | "modern" | "seal") => {
-    if (newStyle === style) return;
+  const handleStyleChange = (newStyle: CardStyle) => {
+    if (newStyle === effectiveStyle) return;
     setStyle(newStyle);
     hasGenerated.current = false;
     setIsGenerating(true);
@@ -273,7 +289,7 @@ export default function CalligraphyCard({
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      generateCanvas(canvas, ctx, chineseName, pinyin, meaning, newStyle);
+      generateCanvas(canvas, ctx, chineseName, pinyin, meaning, newStyle, resolutionMultiplier);
       setIsGenerating(false);
     }, 300);
   };
@@ -281,7 +297,7 @@ export default function CalligraphyCard({
   const handleDownload = () => {
     if (!canvasRef.current) return;
     const link = document.createElement("a");
-    link.download = `chinese-name-${chineseName}.png`;
+    link.download = `chinese-name-${chineseName}-${effectiveStyle}.png`;
     link.href = canvasRef.current.toDataURL("image/png");
     link.click();
   };
@@ -300,7 +316,7 @@ export default function CalligraphyCard({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          Your Calligraphy Card
+          {planName}
         </motion.h2>
         <motion.p
           className="text-zinc-500 text-sm"
@@ -308,23 +324,37 @@ export default function CalligraphyCard({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          Choose your favorite style and download your personalized artwork
+          {visibleStyleOptions.length > 1
+            ? "Choose your favorite style and download your personalized artwork"
+            : "Your curated premium artwork is ready to download"}
         </motion.p>
       </div>
 
       {/* Style selector */}
-      <StyleSelector selectedStyle={style} onStyleChange={handleStyleChange} />
+      {visibleStyleOptions.length > 1 ? (
+        <StyleSelector
+          options={visibleStyleOptions}
+          selectedStyle={effectiveStyle}
+          onStyleChange={handleStyleChange}
+        />
+      ) : (
+        <div className="flex justify-center">
+          <div className="px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
+            Curated classical edition
+          </div>
+        </div>
+      )}
 
       {/* Canvas */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={style}
+          key={effectiveStyle}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.3 }}
         >
-          <CanvasWithFrame canvasRef={canvasRef} style={style} />
+          <CanvasWithFrame canvasRef={canvasRef} style={effectiveStyle} />
 
           {isGenerating && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/50 rounded-xl">
@@ -354,7 +384,7 @@ export default function CalligraphyCard({
             transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
           />
           <Download className="w-5 h-5 relative z-10 group-hover:translate-y-0.5 transition-transform" />
-          <span className="relative z-10">Download HD Image</span>
+          <span className="relative z-10">Download {resolutionLabel}</span>
         </motion.button>
       </motion.div>
 

@@ -1,12 +1,17 @@
 "use client";
 
 import NameForm from "@/components/NameForm";
-import FloatingCharacters from "@/components/FloatingCharacters";
 import { Card } from "@/components/ui/card";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Star, Heart, ChevronDown, ArrowRight, Zap, BookOpen, Award, Crown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import dynamic from "next/dynamic";
+import { PRICING_PLANS } from "@/lib/pricing";
+
+const FloatingCharacters = dynamic(() => import("@/components/FloatingCharacters"), {
+  ssr: false,
+});
 
 function HeroSection() {
   const ref = useRef(null);
@@ -147,6 +152,7 @@ function HeroSection() {
 function FormSection() {
   return (
     <motion.section
+      id="name-form"
       className="relative z-20 px-4 py-24"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
@@ -186,7 +192,7 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section className="relative z-20 py-28 px-4">
+    <section id="how-it-works" className="relative z-20 py-28 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <motion.div
@@ -384,8 +390,8 @@ function TestimonialsSection() {
 
 function PricingSection() {
   return (
-    <section className="relative z-20 py-28 px-4">
-      <div className="max-w-3xl mx-auto">
+    <section id="pricing" className="relative z-20 py-28 px-4">
+      <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <motion.div
           className="text-center mb-16"
@@ -411,116 +417,95 @@ function PricingSection() {
             </span>
           </h2>
           <p className="text-stone-500 max-w-xs mx-auto">
-            Start free, upgrade for premium features
+            Start free, then choose the package that makes the name feel worth owning
           </p>
         </motion.div>
 
         {/* Pricing cards */}
-        <div className="grid md:grid-cols-2 gap-5">
-          {/* Free tier */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-          >
-            <Card className="relative p-8 rounded-2xl bg-white border border-stone-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <h3 className="text-lg font-semibold text-stone-800 mb-1">Free</h3>
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-4xl font-bold text-stone-800">$0</span>
-                <span className="text-stone-400 text-sm">/ forever</span>
-              </div>
-
-              <ul className="space-y-3 mb-8">
-                {[
-                  "Chinese name generation",
-                  "Meaning & explanation",
-                  "Character breakdown",
-                  "Basic cultural insights",
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3 text-stone-600 text-sm">
-                    <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3 h-3 text-green-600" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    {feature}
-                  </li>
-                ))}
-                <li className="flex items-center gap-3 text-stone-300 text-sm">
-                  <div className="w-5 h-5 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3 h-3 text-stone-400" viewBox="0 0 12 12" fill="none">
-                      <path d="M3 6l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  Calligraphy card
-                </li>
-              </ul>
-
-              <Button
-                variant="outline"
-                className="w-full h-12 border-stone-300 text-stone-600 hover:bg-stone-50 hover:text-stone-800 rounded-xl transition-all duration-300 font-medium"
+        <div className="grid md:grid-cols-3 gap-5">
+          {PRICING_PLANS.map((plan, index) => (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: index * 0.08 }}
+              viewport={{ once: true }}
+            >
+              <Card
+                className={`relative rounded-2xl p-8 transition-all duration-300 ${
+                  plan.highlight
+                    ? "border-2 border-amber-300 shadow-[0_24px_80px_-32px_rgba(217,119,6,0.4)] bg-white"
+                    : "border border-stone-200 shadow-sm hover:shadow-md bg-white"
+                }`}
               >
-                Get Started Free
-              </Button>
-            </Card>
-          </motion.div>
-
-          {/* Premium tier */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            viewport={{ once: true }}
-          >
-            <Card className="relative p-8 rounded-2xl overflow-hidden bg-white border-2 border-amber-300 shadow-md">
-              {/* Popular badge */}
-              <div className="absolute -top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div
-                  className="px-4 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
-                  style={{ background: "linear-gradient(135deg, #991b1b, #b45309)" }}
-                >
-                  Most Popular
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mb-1 pt-2">
-                <Crown className="w-5 h-5 text-amber-600" />
-                <h3 className="text-lg font-semibold text-stone-800">Premium</h3>
-              </div>
-
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-4xl font-bold text-stone-800">$2.99</span>
-                <span className="text-stone-400 text-sm">/ one-time</span>
-              </div>
-
-              <ul className="space-y-3 mb-8">
-                {[
-                  "Everything in Free",
-                  "Beautiful calligraphy card",
-                  "HD downloadable image (2400x1600)",
-                  "3 premium style options",
-                  "Share on social media",
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3 text-stone-700 text-sm">
-                    <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3 h-3 text-amber-600" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                <div className="mb-4 min-h-7">
+                  {plan.badge ? (
+                    <div
+                      className="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                      style={{ background: "linear-gradient(135deg, #991b1b, #b45309)" }}
+                    >
+                      {plan.badge}
                     </div>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+                  ) : null}
+                </div>
 
-              <Button className="w-full h-12 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl font-semibold transition-all duration-300 shadow-md hover:shadow-lg">
-                <span className="flex items-center justify-center gap-2">
-                  <Award className="w-5 h-5" />
-                  Get Premium
-                </span>
-              </Button>
-            </Card>
-          </motion.div>
+                <div className="flex items-center gap-2 mb-2">
+                  {plan.id === "signature" ? (
+                    <Crown className="w-5 h-5 text-amber-600" />
+                  ) : plan.id === "keepsake" ? (
+                    <Award className="w-5 h-5 text-red-600" />
+                  ) : (
+                    <Sparkles className="w-5 h-5 text-stone-500" />
+                  )}
+                  <h3 className="text-lg font-semibold text-stone-800">{plan.name}</h3>
+                </div>
+
+                <p className="text-sm text-stone-500 mb-4">{plan.tagline}</p>
+
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-4xl font-bold text-stone-800">{plan.priceLabel}</span>
+                  <span className="text-stone-400 text-sm">
+                    {plan.id === "free" ? "/ forever" : "/ one-time"}
+                  </span>
+                </div>
+
+                <p className="text-sm text-stone-500 leading-relaxed mb-6">
+                  {plan.description}
+                </p>
+
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-stone-700 text-sm">
+                      <div className="mt-0.5 w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-3 h-3 text-amber-600" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="text-xs text-stone-400 mb-4">{plan.resolutionLabel}</div>
+
+                <Button
+                  onClick={() =>
+                    document
+                      .getElementById("name-form")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  variant={plan.id === "free" ? "outline" : "default"}
+                  className={`w-full h-12 rounded-xl font-semibold transition-all duration-300 ${
+                    plan.id === "free"
+                      ? "border-stone-300 text-stone-600 hover:bg-stone-50 hover:text-stone-800"
+                      : "bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-md hover:shadow-lg"
+                  }`}
+                >
+                  {plan.ctaLabel}
+                </Button>
+              </Card>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
@@ -579,28 +564,6 @@ function Footer() {
 }
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#fdf8f3" }}>
-        <div className="flex items-center gap-3 text-amber-600">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <Sparkles className="w-6 h-6" />
-          </motion.div>
-          <span className="text-lg text-stone-600">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen text-stone-800 relative overflow-hidden" style={{ background: "#fdf8f3" }}>
       {/* Floating Characters Background */}
@@ -654,7 +617,14 @@ export default function Home() {
             </nav>
 
             {/* CTA */}
-            <Button className="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl px-6 h-10 text-sm font-semibold transition-all duration-300 shadow-md hover:shadow-lg">
+            <Button
+              onClick={() =>
+                document
+                  .getElementById("name-form")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl px-6 h-10 text-sm font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
+            >
               Try Free
             </Button>
           </motion.div>

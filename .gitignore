@@ -62,6 +62,10 @@ yarn-error.log*
 *.swo
 *~
 
+# Playwright / local review artifacts
+.playwright-mcp/
+output/
+
 # OS
 Thumbs.db
 .DS_Store
