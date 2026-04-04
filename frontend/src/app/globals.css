@@ -50,7 +50,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Premium Chinese Mystique Color Palette */
+/* Premium Chinese Warm Theme - Elegant & Inviting */
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -85,49 +85,53 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Premium Chinese Mystique Colors */
-  --color-bg-dark: #0a0a0a;
-  --color-bg-card: rgba(20, 20, 20, 0.8);
-  --color-red-primary: #dc2626;
-  --color-red-dark: #991b1b;
-  --color-gold-primary: #f59e0b;
-  --color-gold-dark: #d97706;
-  --color-cream: #fef3c7;
-  --color-text-muted: #a3a3a3;
+  /* Warm Chinese Palette */
+  --color-bg-warm: #1a1512;           /* 温暖的深棕色背景 */
+  --color-bg-warm-surface: #2a2320;   /* 卡片背景 */
+  --color-bg-cream: #fdf8f3;          /* 米白色背景 */
+  --color-red-primary: #b91c1c;       /* 朱红 - 不那么艳 */
+  --color-red-warm: #991b1b;          /* 暗红 */
+  --color-gold-primary: #d97706;       /* 金色 */
+  --color-gold-light: #fbbf24;        /* 浅金 */
+  --color-amber-warm: #f59e0b;        /* 琥珀 */
+  --color-text-primary: #f5f0eb;      /* 主文字 - 暖白 */
+  --color-text-muted: #a8a29e;        /* 次要文字 */
+  --color-cream: #fef3c7;             /* 奶油色 */
+  --color-ink: #292524;               /* 墨色 */
 }
 
-/* Dark theme - default for this design */
+/* Dark warm theme - elegant paper feel */
 .dark {
-  --background: var(--color-bg-dark);
-  --foreground: var(--color-cream);
-  --card: oklch(0.145 0 0);
-  --card-foreground: var(--color-cream);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: var(--color-cream);
+  --background: var(--color-bg-warm);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-warm-surface);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-warm-surface);
+  --popover-foreground: var(--color-text-primary);
   --primary: var(--color-red-primary);
   --primary-foreground: var(--color-cream);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: var(--color-cream);
-  --muted: oklch(0.269 0 0);
+  --secondary: var(--color-bg-warm-surface);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-bg-warm-surface);
   --muted-foreground: var(--color-text-muted);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: var(--color-cream);
+  --accent: var(--color-bg-warm-surface);
+  --accent-foreground: var(--color-text-primary);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
   --ring: var(--color-gold-primary);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: var(--color-cream);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar: var(--color-bg-warm-surface);
+  --sidebar-foreground: var(--color-text-primary);
+  --sidebar-primary: var(--color-red-primary);
   --sidebar-primary-foreground: var(--color-cream);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: var(--color-cream);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-accent: var(--color-bg-warm-surface);
+  --sidebar-accent-foreground: var(--color-text-primary);
+  --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: var(--color-gold-primary);
 }
 
@@ -370,26 +374,23 @@
   }
 
   .bg-glass {
-    background: rgba(20, 20, 20, 0.8);
+    background: rgba(42, 35, 32, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 158, 11, 0.1);
   }
 
-  .bg-glass-dark {
-    background: rgba(10, 10, 10, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  .bg-glass-red {
-    background: linear-gradient(
-      135deg,
-      rgba(220, 38, 38, 0.15) 0%,
-      rgba(20, 20, 20, 0.9) 50%,
-      rgba(245, 158, 11, 0.1) 100%
-    );
+  .bg-glass-warm {
+    background: rgba(42, 35, 32, 0.9);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(217, 119, 6, 0.15);
+  }
+
+  .bg-glass-cream {
+    background: rgba(253, 248, 243, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .bg-noise {
@@ -555,27 +556,27 @@ input:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
 }
 
-/* Scrollbar styling for dark theme */
+/* Scrollbar styling - warm theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--color-bg-warm-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
+  background: #4a4035;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+  background: #5a5045;
 }
 
 /* Selection color */
 ::selection {
-  background: rgba(220, 38, 38, 0.3);
-  color: #fef3c7;
+  background: rgba(217, 119, 6, 0.3);
+  color: var(--color-cream);
 }
