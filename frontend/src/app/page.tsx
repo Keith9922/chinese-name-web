@@ -625,63 +625,77 @@ export default function Home() {
       {/* Floating Characters Background */}
       <FloatingCharacters />
 
-      {/* Header */}
-      <header className="relative z-20 py-6 px-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-3"
-          >
-            <span
-              className="text-2xl font-bold"
-              style={{
-                background: "linear-gradient(135deg, #b91c1c, #d97706)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
+      {/* Header - 更醒目的导航栏 */}
+      <header className="relative z-20 py-4 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-stone-200/50 px-6 py-4 flex justify-between items-center">
+            {/* Logo */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex items-center gap-3"
             >
-              ChineseName
-            </span>
-          </motion.div>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl font-bold"
+                style={{
+                  background: "linear-gradient(135deg, #b91c1c, #d97706)",
+                  color: "white",
+                }}
+              >
+                &#38518;
+              </div>
+              <span
+                className="text-xl font-bold"
+                style={{
+                  background: "linear-gradient(135deg, #b91c1c, #d97706)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                ChineseName
+              </span>
+            </motion.div>
 
-          <motion.nav
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="hidden md:flex gap-8 text-sm"
-          >
-            <a
-              href="#how-it-works"
-              className="text-stone-500 hover:text-amber-600 transition-colors"
+            {/* Navigation */}
+            <motion.nav
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="hidden md:flex items-center gap-1"
             >
-              How It Works
-            </a>
-            <a
-              href="#pricing"
-              className="text-stone-500 hover:text-amber-600 transition-colors"
-            >
-              Pricing
-            </a>
-            <a
-              href="#"
-              className="text-stone-500 hover:text-amber-600 transition-colors"
-            >
-              About
-            </a>
-          </motion.nav>
+              <a
+                href="#how-it-works"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50 transition-all"
+              >
+                How It Works
+              </a>
+              <a
+                href="#pricing"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50 transition-all"
+              >
+                Pricing
+              </a>
+              <a
+                href="#"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50 transition-all"
+              >
+                About
+              </a>
+            </motion.nav>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <Button className="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl px-6 h-10 text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg">
-              Try Free
-            </Button>
-          </motion.div>
+            {/* CTA Button */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <Button className="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl px-6 h-10 text-sm font-medium transition-all duration-300 shadow-md hover:shadow-lg">
+                Try Free
+              </Button>
+            </motion.div>
+          </div>
         </div>
       </header>
 
