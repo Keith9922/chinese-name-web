@@ -1,9 +1,9 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useSpring } from "framer-motion";
 import { useEffect, useState } from "react";
 
-// 百家姓 - Hundred Family Surnames (精选常用姓氏)
+// 百家姓 - Hundred Family Surnames
 const surnames = [
   "赵", "钱", "孙", "李", "周", "吴", "郑", "王", "冯", "陈",
   "楚", "卫", "蒋", "沈", "韩", "杨", "朱", "秦", "尤", "许",
@@ -23,15 +23,27 @@ const surnames = [
   "赖", "龚", "文", "欧阳", "司马", "上官", "诸葛", "慕容", "令狐"
 ];
 
-// 书法风格配置 - 深色系，更清晰可见
+// 书法风格配置 - 多样化字体
 const calligraphyStyles = [
-  { fontFamily: "STKaiti, KaiTi, serif", weight: "normal", color: "#d6d3d1" },      // 楷书 - 浅灰
-  { fontFamily: "STKaiti, KaiTi, serif", weight: "bold", color: "#a8a29e" },         // 楷书 - 中灰
-  { fontFamily: "STSong, SimSun, serif", weight: "normal", color: "#78716c" },       // 宋体 - 深灰
-  { fontFamily: "STLiti, LiSu, serif", weight: "normal", color: "#57534e" },        // 隶书 - 暗灰
-  { fontFamily: "STXingkai, XingKai, serif", weight: "normal", color: "#44403c" },  // 行楷 - 墨灰
-  { fontFamily: "STKaiti, KaiTi, serif", weight: "normal", color: "#e7e5e4" },      // 楷书 - 极浅
-  { fontFamily: "STSong, SimSun, serif", weight: "normal", color: "#a8a29e" },       // 宋体
+  // 楷书
+  { fontFamily: "STKaiti, KaiTi, 'Noto Serif SC', serif", weight: "normal", color: "#9ca3af" },
+  { fontFamily: "STKaiti, KaiTi, 'Noto Serif SC', serif", weight: "bold", color: "#6b7280" },
+  // 宋体
+  { fontFamily: "STSong, SimSun, 'Noto Serif SC', serif", weight: "normal", color: "#78716c" },
+  // 隶书
+  { fontFamily: "STLiti, LiSu, 'Noto Serif SC', serif", weight: "normal", color: "#57534e" },
+  // 行楷
+  { fontFamily: "STXingkai, XingKai, 'Noto Serif SC', serif", weight: "normal", color: "#6b7280" },
+  // 小篆 (用特殊字体)
+  { fontFamily: "'STZhongsong', 'Noto Serif SC', serif", weight: "normal", color: "#4b5563" },
+  // 古风楷书
+  { fontFamily: "'Noto Serif SC', 'STKaiti', serif", weight: "600", color: "#6b7280" },
+];
+
+// 神秘符号 - 甲骨文风格字符
+const mysticalSymbols = [
+  "☯", "☮", "✧", "✦", "★", "☆", "◇", "◆", "○", "●",
+  "卍", "卐", "⊕", "∞", "※", "△", "▽", "☆", "◇"
 ];
 
 interface FloatingSurname {
@@ -46,20 +58,22 @@ interface FloatingSurname {
   opacity: number;
   style: typeof calligraphyStyles[0];
   vertical: boolean;
-  floatDistance: number;
+  floatX: number;
+  floatY: number;
+  floatDuration: number;
 }
 
 function generateFloatingSurnames(): FloatingSurname[] {
   const result: FloatingSurname[] = [];
   const usedPositions: { x: number; y: number }[] = [];
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 60; i++) {
     let x: number;
     let y: number;
     let attempts = 0;
     do {
-      x = Math.random() * 90 + 3;
-      y = Math.random() * 90 + 3;
+      x = Math.random() * 92 + 2;
+      y = Math.random() * 92 + 2;
       attempts++;
     } while (
       attempts < 50 &&
@@ -67,19 +81,27 @@ function generateFloatingSurnames(): FloatingSurname[] {
     );
     usedPositions.push({ x, y });
 
+    // 混合使用姓氏和神秘符号
+    const useSymbol = Math.random() > 0.75;
+    const char = useSymbol
+      ? mysticalSymbols[Math.floor(Math.random() * mysticalSymbols.length)]
+      : surnames[Math.floor(Math.random() * surnames.length)];
+
     result.push({
       id: i,
-      character: surnames[Math.floor(Math.random() * surnames.length)],
+      character: char,
       x,
       y,
-      size: Math.random() * 2 + 2.5, // 2.5-4.5rem，更大更明显
-      duration: Math.random() * 30 + 25, // 25-55s，更慢更优雅
-      delay: Math.random() * 15,
-      rotation: Math.random() * 40 - 20, // -20 to 20 degrees
-      opacity: Math.random() * 0.12 + 0.06, // 0.06-0.18，更明显
+      size: Math.random() * 2.5 + 2.5, // 2.5-5rem
+      duration: Math.random() * 35 + 30, // 30-65s
+      delay: Math.random() * 20,
+      rotation: Math.random() * 60 - 30, // -30 to 30 degrees
+      opacity: Math.random() * 0.15 + 0.08, // 0.08-0.23
       style: calligraphyStyles[Math.floor(Math.random() * calligraphyStyles.length)],
       vertical: Math.random() > 0.5,
-      floatDistance: Math.random() * 30 + 20, // 浮动距离
+      floatX: Math.random() * 80 - 40, // 大幅左右游动 -40 to 40
+      floatY: Math.random() * 80 + 30, // 大幅上下浮动 30 to 110
+      floatDuration: Math.random() * 20 + 15, // 15-35s for each float cycle
     });
   }
   return result;
@@ -88,8 +110,8 @@ function generateFloatingSurnames(): FloatingSurname[] {
 const floatingSurnames = generateFloatingSurnames();
 
 function FloatingSurnameItem({ item }: { item: FloatingSurname }) {
-  const springX = useSpring(item.x, { stiffness: 15, damping: 20 });
-  const springY = useSpring(item.y, { stiffness: 15, damping: 20 });
+  const springX = useSpring(item.x, { stiffness: 12, damping: 18 });
+  const springY = useSpring(item.y, { stiffness: 12, damping: 18 });
 
   return (
     <motion.div
@@ -101,34 +123,46 @@ function FloatingSurnameItem({ item }: { item: FloatingSurname }) {
         fontFamily: item.style.fontFamily,
         fontWeight: item.style.weight,
         writingMode: item.vertical ? "vertical-rl" : "horizontal-tb",
-        transform: `rotate(${item.rotation}deg)`,
         x: springX,
         y: springY,
       }}
       animate={{
-        opacity: [item.opacity * 0.6, item.opacity, item.opacity * 0.6],
+        opacity: [item.opacity * 0.7, item.opacity, item.opacity * 0.7],
+        // 大幅游动效果
+        x: [
+          `0%`,
+          `${item.floatX * 0.3}%`,
+          `${item.floatX * 0.6}%`,
+          `${item.floatX * 0.3}%`,
+          `0%`,
+          `${item.floatX * -0.2}%`,
+          `${item.floatX * -0.4}%`,
+          `${item.floatX * -0.2}%`,
+          `0%`,
+        ],
         y: [
           `0px`,
-          `-${item.floatDistance * 0.5}px`,
-          `-${item.floatDistance}px`,
-          `-${item.floatDistance * 0.5}px`,
-          `0px`
-        ],
-        x: [
+          `${item.floatY * 0.3}px`,
+          `${item.floatY * 0.6}px`,
+          `${item.floatY}px`,
+          `${item.floatY * 0.6}px`,
+          `${item.floatY * 0.3}px`,
           `0px`,
-          `${item.floatDistance * 0.2}px`,
-          `${item.floatDistance * 0.3}px`,
-          `${item.floatDistance * 0.1}px`,
-          `0px`
+          `${item.floatY * -0.3}px`,
+          `0px`,
         ],
         rotate: [
           item.rotation,
-          item.rotation + 3,
           item.rotation + 5,
-          item.rotation + 2,
-          item.rotation
+          item.rotation + 8,
+          item.rotation + 5,
+          item.rotation,
+          item.rotation - 5,
+          item.rotation - 8,
+          item.rotation - 5,
+          item.rotation,
         ],
-        scale: [1, 1.02, 1.05, 1.02, 1],
+        scale: [1, 1.03, 1.05, 1.03, 1, 0.97, 0.95, 0.97, 1],
       }}
       transition={{
         duration: item.duration,
@@ -140,7 +174,7 @@ function FloatingSurnameItem({ item }: { item: FloatingSurname }) {
       <span
         style={{
           color: item.style.color,
-          textShadow: "0 1px 2px rgba(0,0,0,0.08)",
+          textShadow: "0 2px 4px rgba(0,0,0,0.06)",
         }}
       >
         {item.character}
@@ -149,47 +183,118 @@ function FloatingSurnameItem({ item }: { item: FloatingSurname }) {
   );
 }
 
-// 装饰性印章
-function SealStamp({ x, y, delay }: { x: number; y: number; delay: number }) {
+// 装饰性印章 - 更精致
+function SealStamp({ x, y, delay, size = 60 }: { x: number; y: number; delay: number; size?: number }) {
   return (
     <motion.div
       className="absolute pointer-events-none"
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        width: 55,
-        height: 55,
+        width: size,
+        height: size,
       }}
       animate={{
-        opacity: [0, 0.06, 0.06, 0],
-        scale: [0.8, 1, 1, 0.8],
-        rotate: [-25, -20, -25],
-        y: [0, -8, 0],
+        opacity: [0, 0.08, 0.08, 0],
+        scale: [0.7, 1, 1, 0.7],
+        rotate: [-20, -15, -20],
+        y: [0, -15, 0, -8],
       }}
       transition={{
-        duration: 20,
+        duration: 25,
         delay,
         repeat: Infinity,
         ease: "easeInOut",
       }}
     >
       <div
-        className="w-full h-full rounded flex items-center justify-center"
+        className="w-full h-full rounded-lg flex items-center justify-center"
         style={{
-          border: "1.5px solid #d97706",
-          background: "rgba(217, 119, 6, 0.05)",
+          border: "2px solid #b45309",
+          background: "rgba(180, 83, 9, 0.04)",
+          boxShadow: "0 4px 12px rgba(180, 83, 9, 0.1)",
         }}
       >
         <span
-          className="text-base font-bold"
+          className="text-lg font-bold"
           style={{
-            fontFamily: "STLiti, LiSu, serif",
-            color: "#d97706",
+            fontFamily: "'Noto Serif SC', 'STLiti', serif",
+            color: "#b45309",
+            letterSpacing: "0.1em",
           }}
         >
           名
         </span>
       </div>
+    </motion.div>
+  );
+}
+
+// 墨点装饰
+function InkSplatter({ x, y, delay }: { x: number; y: number; delay: number }) {
+  return (
+    <motion.div
+      className="absolute pointer-events-none"
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        width: 4,
+        height: 4,
+      }}
+      animate={{
+        opacity: [0, 0.12, 0.08, 0],
+        scale: [0, 1.5, 2, 0],
+        x: [0, 15, 30],
+        y: [0, -20, -40],
+      }}
+      transition={{
+        duration: 12,
+        delay,
+        repeat: Infinity,
+        ease: "easeOut",
+      }}
+    >
+      <div
+        className="w-full h-full rounded-full"
+        style={{
+          background: "radial-gradient(circle, #44403c 0%, transparent 70%)",
+        }}
+      />
+    </motion.div>
+  );
+}
+
+// 流动的金色光点
+function GoldenParticle({ x, y, delay }: { x: number; y: number; delay: number }) {
+  return (
+    <motion.div
+      className="absolute pointer-events-none rounded-full"
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        width: 3,
+        height: 3,
+      }}
+      animate={{
+        opacity: [0, 0.4, 0.2, 0],
+        scale: [0, 1, 0.5, 0],
+        y: [0, -100, -200],
+        x: [0, 20, 0],
+      }}
+      transition={{
+        duration: 15,
+        delay,
+        repeat: Infinity,
+        ease: "easeOut",
+      }}
+    >
+      <div
+        className="w-full h-full rounded-full"
+        style={{
+          background: "radial-gradient(circle, #d97706 0%, transparent 70%)",
+          boxShadow: "0 0 6px #d97706",
+        }}
+      />
     </motion.div>
   );
 }
@@ -205,26 +310,47 @@ export default function FloatingCharacters() {
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* 浮动姓氏 - 50个 */}
+      {/* 浮动姓氏 - 60个 */}
       {floatingSurnames.map((item) => (
         <FloatingSurnameItem key={item.id} item={item} />
       ))}
 
       {/* 装饰性印章 */}
-      <SealStamp x={3} y={10} delay={0} />
-      <SealStamp x={90} y={75} delay={8} />
-      <SealStamp x={78} y={15} delay={4} />
-      <SealStamp x={12} y={85} delay={12} />
-      <SealStamp x={50} y={5} delay={6} />
+      <SealStamp x={3} y={8} delay={0} size={55} />
+      <SealStamp x={92} y={75} delay={10} size={50} />
+      <SealStamp x={80} y={12} delay={5} size={45} />
+      <SealStamp x={8} y={88} delay={15} size={55} />
+      <SealStamp x={50} y={3} delay={8} size={48} />
+      <SealStamp x={65} y={90} delay={12} size={52} />
 
-      {/* 淡淡的渐变叠加 */}
+      {/* 墨点装饰 */}
+      {[...Array(12)].map((_, i) => (
+        <InkSplatter
+          key={`ink-${i}`}
+          x={Math.random() * 90 + 5}
+          y={Math.random() * 90 + 5}
+          delay={i * 2.5}
+        />
+      ))}
+
+      {/* 金色光点 */}
+      {[...Array(6)].map((_, i) => (
+        <GoldenParticle
+          key={`gold-${i}`}
+          x={Math.random() * 80 + 10}
+          y={Math.random() * 60 + 20}
+          delay={i * 4}
+        />
+      ))}
+
+      {/* 柔和的渐变 */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 60% 50% at 10% 20%, rgba(217, 119, 6, 0.04) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 40% at 90% 80%, rgba(185, 28, 28, 0.03) 0%, transparent 50%),
-            radial-gradient(ellipse 80% 80% at 50% 50%, transparent 50%, rgba(41, 37, 36, 0.015) 100%)
+            radial-gradient(ellipse 50% 40% at 5% 10%, rgba(217, 119, 6, 0.05) 0%, transparent 50%),
+            radial-gradient(ellipse 40% 30% at 95% 85%, rgba(180, 83, 9, 0.04) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 50% at 50% 50%, rgba(251, 191, 36, 0.02) 0%, transparent 50%)
           `,
         }}
       />
