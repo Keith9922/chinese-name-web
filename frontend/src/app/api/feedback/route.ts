@@ -113,9 +113,11 @@ async function writeToBitable(record: BitableRecord) {
 
   const appToken = process.env.LARK_BITABLE_APP_TOKEN;
   const tableId = process.env.LARK_BITABLE_TABLE_ID;
+  const timestampMs = Date.parse(record.timestamp) || Date.now();
 
-  await fetch(
-    `https://open.feishu.cn/open-apis/bitable/v1/apps/${appToken}/tables/${tableId}/records`,
+  // Lark Base v3 batch_create: fields-array + rows-array form
+  const res = await fetch(
+    `https://open.feishu.cn/open-apis/base/v3/bases/${appToken}/tables/${tableId}/records/batch_create`,
     {
       method: "POST",
       headers: {
@@ -123,14 +125,21 @@ async function writeToBitable(record: BitableRecord) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        fields: {
-          Rating: record.rating,
-          Comment: record.comment,
-          "Chinese Name": record.chineseName,
-          Source: record.source,
-          Timestamp: record.timestamp,
-        },
+        fields: ["Rating", "Comment", "Chinese Name", "Source", "Timestamp"],
+        rows: [
+          [
+            record.rating,
+            record.comment,
+            record.chineseName,
+            record.source,
+            timestampMs,
+          ],
+        ],
       }),
     },
   );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Bitable write failed: ${res.status} ${text.slice(0, 300)}`);
+  }
 }
