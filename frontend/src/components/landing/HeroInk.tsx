@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import MagneticWrap from "@/components/shared/MagneticWrap";
 
 const ROTATING_SAMPLES = [
   { en: "Emma", zh: "苏雅琳", py: "Sū Yǎ Lín" },
@@ -155,23 +156,30 @@ export default function HeroInk() {
             transition={{ duration: 0.8, delay: 0.95 }}
             className="mt-10 flex flex-wrap items-center gap-4"
           >
-            <Link
-              href="/generate"
-              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full px-7 py-3.5 text-base font-medium text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5"
-              style={{
-                background:
-                  "linear-gradient(135deg, #c2392c 0%, #a32419 50%, #7e1810 100%)",
-                boxShadow: "0 14px 40px -16px rgba(162, 36, 25, 0.6)",
-              }}
-            >
-              <span>Find my Chinese name</span>
-              <span
-                className="grid h-5 w-5 place-items-center rounded-full bg-white/20 text-xs transition-transform duration-300 group-hover:translate-x-0.5"
-                aria-hidden
+            <MagneticWrap strength={10}>
+              <Link
+                href="/generate"
+                className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full px-7 py-3.5 text-base font-medium text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #c2392c 0%, #a32419 50%, #7e1810 100%)",
+                  boxShadow: "0 14px 40px -16px rgba(162, 36, 25, 0.6)",
+                }}
               >
-                →
-              </span>
-            </Link>
+                {/* Shimmer sweep on hover */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 transition-all duration-700 group-hover:left-full group-hover:opacity-100"
+                />
+                <span className="relative">Find my Chinese name</span>
+                <span
+                  className="relative grid h-5 w-5 place-items-center rounded-full bg-white/20 text-xs transition-transform duration-300 group-hover:translate-x-0.5"
+                  aria-hidden
+                >
+                  →
+                </span>
+              </Link>
+            </MagneticWrap>
 
             <a
               href="#examples"
@@ -295,6 +303,8 @@ export default function HeroInk() {
 }
 
 function BrushStrokeCharacter() {
+  // Ink-soak reveal: a clip rectangle grows from the top-left diagonal,
+  // re-creating the moment a wet brush deposits ink onto rice paper.
   return (
     <svg
       viewBox="0 0 240 280"
@@ -306,21 +316,62 @@ function BrushStrokeCharacter() {
           <stop offset="0%" stopColor="#1f1410" />
           <stop offset="100%" stopColor="#4a2f20" />
         </linearGradient>
+        <clipPath id="inkReveal">
+          <motion.rect
+            x="0"
+            y="0"
+            width="240"
+            height="280"
+            initial={{ scaleX: 0, scaleY: 0 }}
+            animate={{ scaleX: 1, scaleY: 1 }}
+            transition={{
+              scaleX: { duration: 2.4, delay: 0.6, ease: [0.16, 1, 0.3, 1] },
+              scaleY: { duration: 2.4, delay: 0.8, ease: [0.16, 1, 0.3, 1] },
+            }}
+            style={{ originX: 0, originY: 0 }}
+          />
+        </clipPath>
       </defs>
+      {/* Faint outline so the negative space hints at the character before reveal */}
       <text
         x="120"
         y="200"
         textAnchor="middle"
         fontSize="240"
         fontWeight="700"
-        fill="url(#inkGrad)"
+        fill="none"
+        stroke="rgba(58, 30, 18, 0.08)"
+        strokeWidth="1.5"
         fontFamily="'Noto Serif SC', serif"
-        style={{
-          letterSpacing: "-0.05em",
-        }}
+        style={{ letterSpacing: "-0.05em" }}
       >
         名
       </text>
+      {/* The character revealed by the clip mask */}
+      <g clipPath="url(#inkReveal)">
+        <text
+          x="120"
+          y="200"
+          textAnchor="middle"
+          fontSize="240"
+          fontWeight="700"
+          fill="url(#inkGrad)"
+          fontFamily="'Noto Serif SC', serif"
+          style={{ letterSpacing: "-0.05em" }}
+        >
+          名
+        </text>
+      </g>
+      {/* A small ink-drip blot near the lower curve, fading in at the end of the reveal */}
+      <motion.circle
+        cx="170"
+        cy="218"
+        r="3.5"
+        fill="#1f1410"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: [0, 0.55, 0.35], scale: [0, 1.4, 1] }}
+        transition={{ duration: 1.6, delay: 3.0, ease: "easeOut" }}
+      />
     </svg>
   );
 }
