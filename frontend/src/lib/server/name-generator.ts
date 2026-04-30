@@ -260,42 +260,70 @@ function buildFallbackName(ctx: FallbackContext): NameGenerationResult {
 
 function normalizeResponse(parsed: Record<string, unknown>, ctx: FallbackContext): NameGenerationResult {
   const chineseName = String(parsed.chineseName ?? "").trim();
-  const suggestedRaw = parsed.suggestedCharacters;
 
-  if (!chineseName || !Array.isArray(suggestedRaw)) return buildFallbackName(ctx);
-  if ([...chineseName].length !== suggestedRaw.length) return buildFallbackName(ctx);
-
-  if (!ctx.surnameCandidates.some((triple) => chineseName.startsWith(triple[0]))) {
+  if (!chineseName) {
+    console.warn("[name-generator] AI returned no chineseName, using fallback");
     return buildFallbackName(ctx);
   }
 
-  const required = {
-    pinyin: parsed.pinyin,
-    meaning: parsed.meaning,
-    culturalExplanation: parsed.culturalExplanation,
-    pronunciationMapping: parsed.pronunciationMapping,
-    elementAnalysis: parsed.elementAnalysis,
-  };
-  if (Object.values(required).some((v) => !String(v ?? "").trim())) return buildFallbackName(ctx);
-
-  const characters: SuggestedCharacter[] = [];
-  for (const item of suggestedRaw) {
-    if (!item || typeof item !== "object") return buildFallbackName(ctx);
-    const character = String((item as Record<string, unknown>).character ?? "").trim();
-    const meaning = String((item as Record<string, unknown>).meaning ?? "").trim();
-    if ([...character].length !== 1 || !meaning) return buildFallbackName(ctx);
-    characters.push({ character, meaning });
+  const chars = [...chineseName];
+  if (chars.length < 2 || chars.length > 4) {
+    console.warn("[name-generator] AI chineseName has unusual length:", chineseName, "→ fallback");
+    return buildFallbackName(ctx);
   }
 
-  if (characters.map((c) => c.character).join("") !== chineseName) return buildFallbackName(ctx);
+  // Repair suggestedCharacters if the model returned a length mismatch — this
+  // is by far the most common shape failure in practice. We trust the
+  // chineseName as ground truth and pull meanings from whatever the model
+  // did provide, otherwise leave a short generic gloss.
+  const suggestedRaw: unknown[] = Array.isArray(parsed.suggestedCharacters)
+    ? (parsed.suggestedCharacters as unknown[])
+    : [];
+
+  const characters: SuggestedCharacter[] = chars.map((ch, idx) => {
+    const item = suggestedRaw[idx];
+    if (item && typeof item === "object") {
+      const m = String((item as Record<string, unknown>).meaning ?? "").trim();
+      if (m) return { character: ch, meaning: m };
+    }
+    // Look up a fallback meaning from our pools
+    for (const triple of ctx.surnameCandidates) {
+      if (triple[0] === ch) return { character: ch, meaning: triple[2] };
+    }
+    for (const triple of ctx.soundCandidates) {
+      if (triple[0] === ch) return { character: ch, meaning: triple[2] };
+    }
+    return { character: ch, meaning: "—" };
+  });
+
+  // Require the core descriptive fields. If two or more are missing, the
+  // response is likely truncated and we should fall back rather than show
+  // half a name.
+  const fields = {
+    pinyin: String(parsed.pinyin ?? "").trim(),
+    meaning: String(parsed.meaning ?? "").trim(),
+    culturalExplanation: String(parsed.culturalExplanation ?? "").trim(),
+    pronunciationMapping: String(parsed.pronunciationMapping ?? "").trim(),
+    elementAnalysis: String(parsed.elementAnalysis ?? "").trim(),
+  };
+  const missing = Object.entries(fields).filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length >= 2) {
+    console.warn("[name-generator] AI response missing fields:", missing, "→ fallback");
+    return buildFallbackName(ctx);
+  }
+  // For single missing fields, fill with a minimal placeholder so the
+  // result still renders.
+  for (const k of missing) {
+    (fields as Record<string, string>)[k] = "—";
+  }
 
   return {
     chineseName,
-    pinyin: String(required.pinyin).trim(),
-    meaning: String(required.meaning).trim(),
-    culturalExplanation: String(required.culturalExplanation).trim(),
-    pronunciationMapping: String(required.pronunciationMapping).trim(),
-    elementAnalysis: String(required.elementAnalysis).trim(),
+    pinyin: fields.pinyin,
+    meaning: fields.meaning,
+    culturalExplanation: fields.culturalExplanation,
+    pronunciationMapping: fields.pronunciationMapping,
+    elementAnalysis: fields.elementAnalysis,
     suggestedCharacters: characters,
   };
 }
