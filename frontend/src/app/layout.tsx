@@ -28,11 +28,11 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://ink-name.vercel.app",
   ),
   title: {
-    default: "Ink Name · Your Chinese name, written in ink",
+    default: "Ink Name · Your name, rewritten in ink",
     template: "%s · Ink Name",
   },
   description:
-    "A Chinese name designed for who you are — by sound, by season, and by the five elements. Free to discover, beautiful to keep.",
+    "A name five thousand years in the making, waiting for you. Chosen by sound, by season, and by the five elements — free to discover, beautiful to keep.",
   keywords: [
     "Chinese name generator",
     "Chinese name for foreigners",
@@ -42,16 +42,16 @@ export const metadata: Metadata = {
     "Mandarin name",
   ],
   openGraph: {
-    title: "Ink Name · Your Chinese name, written in ink",
+    title: "Ink Name · Your name, rewritten in ink",
     description:
-      "A Chinese name designed for who you are — by sound, by season, and by the five elements.",
+      "A name five thousand years in the making, waiting for you. Chosen by sound, by season, and by the five elements.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ink Name",
+    title: "Ink Name · 落墨即名",
     description:
-      "Your Chinese name, designed by sound, season, and the five elements.",
+      "A name five thousand years in the making, waiting for you.",
   },
 };
 

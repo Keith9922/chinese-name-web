@@ -61,6 +61,18 @@ export default function FinalCTA() {
               →
             </span>
           </Link>
+
+          {/* Closing seal — bilingual signature */}
+          <div className="relative mt-14 flex items-center justify-center gap-3 text-amber-200/60">
+            <span className="h-px w-12 bg-amber-300/30" />
+            <span
+              className="text-xs uppercase tracking-[0.4em]"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            >
+              落墨即名 · ink falls. the name appears.
+            </span>
+            <span className="h-px w-12 bg-amber-300/30" />
+          </div>
         </motion.div>
       </div>
     </section>

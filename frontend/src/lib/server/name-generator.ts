@@ -322,18 +322,51 @@ function parseModelText(responseText: string): Record<string, unknown> {
   }
 }
 
+const SYSTEM_PROMPT = `You are a senior Chinese naming consultant. You write names the way a literate Chinese parent would — listening to the music of the original name, watching the season they were born into, and choosing two characters whose images, when placed next to each other, paint a small picture of the person.
+
+You hold yourself to a strict standard:
+
+— A real name, not a transliteration. The full name must feel like something a Chinese friend would actually call this person, never a mechanical sound-by-sound mapping (no 艾玛, 麦克, 约翰).
+
+— A real name, not a placeholder. Hard-banned: 李明, 王伟, 张伟, 李华, 王明, 张敏, 王芳, 李娜, 张磊, 张伟, 王刚 and any combination that reads like a kindergarten roll-call. Lazy endings 明 / 伟 / 芳 / 娜 / 强 are only acceptable when the semantics are exceptional and clearly defended.
+
+— Two characters that converse. The given-name characters should pair as imagery — 雅琳 (elegance + jade), 清岚 (clarity + mountain mist), 宇辰 (vast sky + dignified hour). Each adds to the other; together they form a small phrase or scene.
+
+— A surname that sounds right. Pull the surname from the candidate pool unless there's an overwhelming phonetic reason not to. Never default to 王 unless 王 is in the pool AND the L/V/W sound truly matches.
+
+— Birth profile as flavour, not as fortune-telling. Use the 八字 / 五行 imagery as a lightweight compass for character choice. Don't moralise; don't predict the future. Just lean toward the elements that balance.
+
+— Aesthetic above all else. The name should be pleasant on the tongue, elegant in the eye, and easy for a Western speaker to remember and say.
+
+You return ONE single JSON object. No prose, no markdown fences, no commentary outside the JSON.`;
+
+const FEW_SHOT_EXAMPLES = `Examples of the bar to clear:
+
+Input: Emma, female, spring birth (Wood dominant)
+Good: 苏雅琳 (Sū Yǎ Lín). Sū opens softly like the M of "Emma"; 雅琳 = "elegance and jade-green woods", a spring-Wood image of a graceful woman in a young forest.
+Bad: 艾玛 (Ài Mǎ) — pure transliteration, no Chinese soul. 王芳 — placeholder.
+
+Input: Michael, male, summer birth (Fire dominant; balance toward Water)
+Good: 麦瑞文 (Mài Ruì Wén). Mài echoes "Mike"; 瑞文 = "auspicious and literate", giving the high-energy Fire profile a measured Water-like inwardness.
+Bad: 迈克尔 (Mài Kè'ěr) — transliteration. 王伟 — placeholder.
+
+Input: Lily, female, autumn birth (Metal dominant; balance toward Wood/Water)
+Good: 黎清岚 (Lí Qīng Lán). Lí for the L-sound; 清岚 = "clear mountain mist" — water imagery softens the Metal autumn, lily-like in clarity.
+Bad: 莉莉 (Lì lì) — transliteration. 张敏 — placeholder.`;
+
 async function callClaude(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const baseURL = process.env.ANTHROPIC_BASE_URL || "https://api.minimaxi.com/anthropic";
-  const model = process.env.MINIMAX_MODEL || "MiniMax-M2";
+  const model = process.env.MINIMAX_MODEL || "MiniMax-M2.7";
 
   const client = new Anthropic({ apiKey, baseURL });
 
   const response = await client.messages.create({
     model,
-    max_tokens: 1024,
+    max_tokens: 1500,
+    system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -353,42 +386,46 @@ function buildPrompt(input: NameGenerationInput, ctx: FallbackContext): string {
   const soundPrompt = ctx.soundCandidates.slice(0, 8).map(([c, p, m]) => `${c} (${p}, ${m})`).join(", ");
   const birthTimeLine = birthTime || "not provided";
 
-  return `You are a senior Chinese naming consultant who combines Mandarin phonetics, literary naming taste, and light 八字 / 五行 reasoning.
+  return `${FEW_SHOT_EXAMPLES}
 
-Create a distinctive Chinese full name for this person:
+Now compose ONE name for this person:
+
+THE PERSON
 - English name: ${englishName}
 - Gender: ${gender}
 - Birth date: ${year}-${month}-${day}
 - Birth time: ${birthTimeLine}
-- Approximate birth profile: ${ctx.birthProfile.summary}
-- Recommended surname pool based on pronunciation: ${surnamePrompt}
-- Recommended given-name sound pool based on pronunciation and mood: ${soundPrompt}
+- Birth profile (lightweight 八字 reading): ${ctx.birthProfile.summary}
 
-Naming rules:
-1. Prefer a 3-character full Chinese name: 1 surname + 2-character given name.
-2. The surname must come directly from this recommended surname pool unless there is an overwhelming phonetic reason not to.
-3. Do NOT default to ultra-generic names such as 李明, 王伟, 张伟, 李华, 王芳, 王娜, 张敏, 李娜.
-4. Never use 王 as the surname unless 王 is inside the surname pool and you clearly explain why it is the best phonetic match.
-5. The full name should feel like a real Mandarin name, not a mechanical transliteration or a classroom placeholder.
-6. The given name should preserve either the sound, rhythm, or emotional impression of "${englishName}".
-7. Use the birth profile as a lightweight 八字 guide: favor imagery connected to ${ctx.birthProfile.balancingElements.join(", ")} and qualities such as ${ctx.birthProfile.balancingImages}.
-8. Avoid lazy endings like 明 / 伟 / 芳 / 娜 unless the semantics are unusually well justified.
-9. The name should be aesthetically pleasing, easy for Western users to remember, and culturally elegant.
-10. Explain both the pronunciation bridge and the birth-profile balance.
-11. suggestedCharacters must contain one entry for each Chinese character in chineseName, in order.
+PHONETIC CANDIDATES (you may deviate only with a real reason)
+- Surname pool, ranked by pronunciation match: ${surnamePrompt}
+- Given-name sound pool, by sound and mood: ${soundPrompt}
 
-Return pure JSON only:
+ELEMENTAL DIRECTION
+- Balancing elements to lean toward: ${ctx.birthProfile.balancingElements.join(", ")}
+- Suggested imagery for the given-name characters: ${ctx.birthProfile.balancingImages}
+
+NAMING REQUIREMENTS
+- Three characters total: 1 surname + a 2-character given name.
+- The surname must come from the surname pool unless you provide an overwhelming phonetic reason in the explanation.
+- The two given-name characters must form a coherent image or short phrase together — not two random virtues.
+- Avoid placeholder names (李明 / 王伟 / 张敏 / 李娜 / 王芳 etc.) and avoid the lazy endings 明 / 伟 / 芳 / 娜 / 强.
+- Avoid pure transliterations (艾玛 / 迈克 / 约翰).
+- The pronunciation mapping must explain how the Chinese sounds echo "${englishName}".
+- The element analysis must reference the season and dominant element, and how this name compensates.
+
+OUTPUT FORMAT (return JSON object only — no markdown, no commentary):
 {
-  "chineseName": "3 Chinese characters preferred",
-  "pinyin": "full pinyin with tone marks",
-  "meaning": "natural English gloss of the whole name",
-  "culturalExplanation": "2-3 sentences on why this is culturally elegant and suitable",
-  "pronunciationMapping": "1-2 sentences on how the Chinese surname and given name echo ${englishName}",
-  "elementAnalysis": "1-2 sentences on how the birth date and optional birth time influenced the character choice",
+  "chineseName": "exactly 3 Chinese characters",
+  "pinyin": "Pīn Yīn Yīn — with tone marks, space-separated",
+  "meaning": "8-15 word natural English phrase glossing the whole name as a single image",
+  "culturalExplanation": "2-3 sentences on what makes this name elegant — reference the imagery the two given-name characters create together",
+  "pronunciationMapping": "1-2 sentences explicitly mapping which Chinese syllables echo which parts of \\"${englishName}\\"",
+  "elementAnalysis": "1-2 sentences naming the birth season, dominant element, and how this name's character imagery balances or complements it",
   "suggestedCharacters": [
-    {"character": "姓", "meaning": "meaning of the surname character"},
-    {"character": "名", "meaning": "meaning of the first given-name character"},
-    {"character": "名", "meaning": "meaning of the second given-name character"}
+    {"character": "<surname char>", "meaning": "natural English meaning of this character — 6-12 words"},
+    {"character": "<given char 1>", "meaning": "natural English meaning"},
+    {"character": "<given char 2>", "meaning": "natural English meaning"}
   ]
 }`;
 }

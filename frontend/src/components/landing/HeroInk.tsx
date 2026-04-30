@@ -118,8 +118,13 @@ export default function HeroInk() {
             transition={{ duration: 0.8, delay: 0.55 }}
             className="mt-7 max-w-md text-[1.05rem] leading-relaxed text-stone-600"
           >
-            For five thousand years, names have been chosen by sound, season, and the
-            five elements. We do the same — for you, in three minutes.
+            <span className="block font-medium text-stone-800">
+              A name five thousand years in the making, waiting for you.
+            </span>
+            <span className="mt-2 block">
+              Chosen by sound, by season, and by the five elements — composed in
+              three minutes, written for life.
+            </span>
           </motion.p>
 
           {/* Rotating sample */}
