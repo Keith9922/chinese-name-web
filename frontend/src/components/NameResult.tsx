@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
+import NamePronounce from "./NamePronounce";
 import PremiumUnlock from "./PremiumUnlock";
 import FeedbackWidget from "./feedback/FeedbackWidget";
 
@@ -18,9 +19,10 @@ interface NameResultProps {
     elementAnalysis: string;
     suggestedCharacters: { character: string; meaning: string }[];
   };
+  gender?: "male" | "female" | "other";
 }
 
-export default function NameResult({ result }: NameResultProps) {
+export default function NameResult({ result, gender }: NameResultProps) {
   const [shareCopied, setShareCopied] = useState(false);
 
   const toStructuredMarkdown = (text: string) => {
@@ -128,9 +130,21 @@ export default function NameResult({ result }: NameResultProps) {
             </motion.p>
 
             <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.75 }}
+            >
+              <NamePronounce
+                chineseName={result.chineseName}
+                pinyin={result.pinyin}
+                gender={gender}
+              />
+            </motion.div>
+
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.9 }}
               className="mt-6 flex flex-wrap justify-center gap-2"
             >
               <Tag>Sound-matched</Tag>

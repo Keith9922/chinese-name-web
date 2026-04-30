@@ -240,7 +240,10 @@ export default function NameForm() {
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="mx-auto mt-14 max-w-6xl"
           >
-            <NameResult result={result} />
+            <NameResult
+              result={result}
+              gender={gender || undefined}
+            />
           </motion.div>
         )}
       </AnimatePresence>
