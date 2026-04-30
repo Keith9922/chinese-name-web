@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "regions": ["iad1"],
+  "functions": {
+    "src/app/api/generate-name/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/create-checkout-session/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/feedback/route.ts": {
+      "maxDuration": 15
+    }
+  }
+}
