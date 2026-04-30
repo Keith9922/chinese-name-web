@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import {
   CharacterTriple,
   EARTHLY_BRANCHES,
@@ -388,36 +387,62 @@ Bad: 莉莉 (Lì lì) — transliteration. 张敏 — placeholder.`;
 // On Pro you can extend NAME_AI_TIMEOUT_MS via env to e.g. 60000.
 const DEFAULT_TIMEOUT_MS = 27000;
 
+interface MiniMaxChatResponse {
+  choices?: Array<{
+    finish_reason?: string;
+    message?: {
+      content?: string;
+      reasoning_content?: string;
+    };
+  }>;
+  base_resp?: { status_code?: number; status_msg?: string };
+}
+
 async function callClaude(prompt: string): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+  const apiKey = process.env.MINIMAX_API_KEY ?? process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("MINIMAX_API_KEY / ANTHROPIC_API_KEY is not configured");
 
-  const baseURL = process.env.ANTHROPIC_BASE_URL || "https://api.minimaxi.com/anthropic";
-  // Default to the speed-optimised variant — the standard model frequently
-  // takes 30-60s on MiniMax which exceeds Vercel Hobby's 10s function cap.
-  const model = process.env.MINIMAX_MODEL || "MiniMax-M2.7-highspeed";
+  // Native MiniMax endpoint — keeps reasoning_content out of the main `content`
+  // field so the model's chain-of-thought doesn't eat our token budget. The
+  // Anthropic-compat layer at /anthropic/v1/messages mixes thinking blocks
+  // into content and routinely 700-token-truncates the actual JSON.
+  const apiBase = process.env.MINIMAX_API_BASE || "https://api.minimaxi.com";
+  const model = process.env.MINIMAX_MODEL || "MiniMax-M2";
   const timeoutMs = Number(process.env.NAME_AI_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
-
-  const client = new Anthropic({ apiKey, baseURL });
 
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), timeoutMs);
 
   try {
-    const response = await client.messages.create(
-      {
-        model,
-        max_tokens: 700, // names are short; 700 is plenty for the JSON envelope
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: prompt }],
+    const res = await fetch(`${apiBase}/v1/text/chatcompletion_v2`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-      { signal: ctrl.signal },
-    );
+      body: JSON.stringify({
+        model,
+        max_tokens: 2500, // reasoning + final JSON; content is separately surfaced
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: prompt },
+        ],
+      }),
+      signal: ctrl.signal,
+    });
 
-    return response.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("\n");
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`MiniMax HTTP ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    const json = (await res.json()) as MiniMaxChatResponse;
+    if (json.base_resp && json.base_resp.status_code && json.base_resp.status_code !== 0) {
+      throw new Error(`MiniMax error ${json.base_resp.status_code}: ${json.base_resp.status_msg ?? ""}`);
+    }
+    const content = json.choices?.[0]?.message?.content ?? "";
+    if (!content) throw new Error("MiniMax returned empty content");
+    return content;
   } finally {
     clearTimeout(timeout);
   }
