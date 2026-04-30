@@ -382,28 +382,46 @@ Input: Lily, female, autumn birth (Metal dominant; balance toward Wood/Water)
 Good: 黎清岚 (Lí Qīng Lán). Lí for the L-sound; 清岚 = "clear mountain mist" — water imagery softens the Metal autumn, lily-like in clarity.
 Bad: 莉莉 (Lì lì) — transliteration. 张敏 — placeholder.`;
 
+// Vercel Hobby caps serverless functions at 10s of execution. The AI call
+// alone often exceeds that, so we race it against a hard timeout and fall
+// back to the deterministic naming algorithm if the model is too slow.
+// On Pro you can extend NAME_AI_TIMEOUT_MS via env to (say) 50000 and let
+// the model take its time.
+const DEFAULT_TIMEOUT_MS = 9000;
+
 async function callClaude(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const baseURL = process.env.ANTHROPIC_BASE_URL || "https://api.minimaxi.com/anthropic";
-  const model = process.env.MINIMAX_MODEL || "MiniMax-M2.7";
+  // Default to the speed-optimised variant — the standard model frequently
+  // takes 30-60s on MiniMax which exceeds Vercel Hobby's 10s function cap.
+  const model = process.env.MINIMAX_MODEL || "MiniMax-M2.7-highspeed";
+  const timeoutMs = Number(process.env.NAME_AI_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
 
   const client = new Anthropic({ apiKey, baseURL });
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: 1500,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), timeoutMs);
 
-  const text = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
+  try {
+    const response = await client.messages.create(
+      {
+        model,
+        max_tokens: 700, // names are short; 700 is plenty for the JSON envelope
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: prompt }],
+      },
+      { signal: ctrl.signal },
+    );
 
-  return text;
+    return response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("\n");
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function buildPrompt(input: NameGenerationInput, ctx: FallbackContext): string {
@@ -483,7 +501,11 @@ export async function generateName(input: NameGenerationInput): Promise<NameGene
     return buildFallbackName(ctx);
   }
 
-  if (isGenericResult(parsed)) {
+  // Retry budget: skip the retry when the function timeout is tight (Hobby
+  // plan), because a second call can't fit within the same invocation.
+  const allowRetry = (Number(process.env.NAME_AI_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS) >= 25000;
+
+  if (allowRetry && isGenericResult(parsed)) {
     const retryPrompt = `${prompt}
 
 Your last answer was too generic or incomplete. Try again with a name that is more distinctive for ${input.englishName}.
