@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Sparkles, Gift, BookOpen } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import NameResult from "./NameResult";
 
 export default function NameForm() {
@@ -38,15 +37,11 @@ export default function NameForm() {
     setLoading(true);
 
     try {
-      if (!gender) {
-        throw new Error("Gender is required");
-      }
+      if (!gender) throw new Error("Gender is required");
 
       const response = await fetch("/api/generate-name", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           englishName,
           gender,
@@ -55,14 +50,19 @@ export default function NameForm() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate name");
-      }
+      if (!response.ok) throw new Error("Failed to generate name");
 
       const data = await response.json();
       setResult(data);
+      // Smooth scroll to result after render
+      window.setTimeout(() => {
+        document.getElementById("name-result")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 200);
     } catch {
-      setError("Sorry, we couldn't generate a name. Please try again.");
+      setError("Sorry, the brush slipped. Please try once more.");
     } finally {
       setLoading(false);
     }
@@ -78,233 +78,219 @@ export default function NameForm() {
 
   return (
     <div className="w-full">
-      <div className="max-w-lg mx-auto">
-        <Card className="relative overflow-hidden rounded-2xl shadow-lg border border-stone-200 bg-white">
-        {/* Top decorative line */}
-        <div
-          className="absolute top-0 left-0 right-0 h-1"
-          style={{
-            background: "linear-gradient(90deg, #b91c1c, #d97706, #b91c1c)",
-          }}
-        />
-
-        <div className="relative p-8 md:p-10">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-center mb-8"
+      <div className="mx-auto max-w-xl">
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative overflow-hidden rounded-3xl border border-stone-200/80 bg-white/85 shadow-[0_30px_80px_-40px_rgba(60,38,22,0.18)] backdrop-blur"
+        >
+          {/* Ornament: red corner ribbon */}
+          <div
+            aria-hidden
+            className="absolute -left-10 -top-10 h-28 w-28 rotate-[-30deg] rounded-md"
+            style={{
+              background:
+                "linear-gradient(135deg, #c2392c 0%, #7e1810 100%)",
+              boxShadow: "0 8px 24px -10px rgba(162, 36, 25, 0.4)",
+            }}
+          />
+          <span
+            aria-hidden
+            className="absolute left-3 top-3 text-xs font-bold tracking-wide text-amber-100/95"
+            style={{ fontFamily: "'Noto Serif SC', serif" }}
           >
-            <h2 className="text-lg md:text-xl font-light text-stone-500 mb-1 tracking-wide">
-              Reveal Your
-            </h2>
-            <h2
-              className="text-3xl md:text-4xl font-bold"
-              style={{
-                background: "linear-gradient(135deg, #b91c1c, #d97706)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Chinese Name
-            </h2>
-            <p className="text-sm text-stone-400 mt-3 max-w-xs mx-auto">
-              Discover the name that carries thousand years of wisdom and cultural heritage
-            </p>
-          </motion.div>
+            起
+          </span>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name Input */}
-            <div className="space-y-2">
-              <label
-                htmlFor="englishName"
-                className="text-sm font-medium text-stone-600"
+          <div className="relative px-7 pb-9 pt-10 md:px-10 md:pt-12">
+            <div className="text-center">
+              <span
+                className="text-[10px] uppercase tracking-[0.4em] text-stone-500"
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}
               >
-                Your Current Name
-              </label>
-              <Input
-                id="englishName"
-                placeholder="John Smith"
-                value={englishName}
-                onChange={(e) => setEnglishName(e.target.value)}
-                required
-                className="h-12 bg-stone-50 border-stone-300 text-stone-800 placeholder:text-stone-400 focus:border-amber-400 focus:ring-amber-100 rounded-xl transition-all duration-300"
-              />
+                The Naming Form
+              </span>
+              <h2
+                className="mt-2 text-2xl font-semibold tracking-tight text-stone-900 md:text-3xl"
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              >
+                Three answers, then the brush.
+              </h2>
             </div>
 
-            {/* Gender Select */}
-            <div className="space-y-2">
-              <label
-                htmlFor="gender"
-                className="text-sm font-medium text-stone-600"
-              >
-                Gender
-              </label>
-              <Select
-                value={gender}
-                onValueChange={(value) => setGender(value as "male" | "female" | "other")}
-              >
-                <SelectTrigger className="h-12 w-full bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl data-[placeholder:text-stone-400]">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent
-                  align="start"
-                  sideOffset={8}
-                  alignItemWithTrigger={false}
-                  className="bg-white border-stone-200 text-stone-800 shadow-lg"
-                >
-                  <SelectItem value="male" className="focus:bg-stone-100 focus:text-stone-800">
-                    Male
-                  </SelectItem>
-                  <SelectItem value="female" className="focus:bg-stone-100 focus:text-stone-800">
-                    Female
-                  </SelectItem>
-                  <SelectItem value="other" className="focus:bg-stone-100 focus:text-stone-800">
-                    Other / Prefer not to say
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Birth Date */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label
-                  htmlFor="birthDate"
-                  className="text-sm font-medium text-stone-600"
-                >
-                  Birth Date
-                </label>
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <Field label="Your name" hint="The one you go by today.">
                 <Input
-                  id="birthDate"
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
+                  id="englishName"
+                  placeholder="e.g. Emma Carter"
+                  value={englishName}
+                  onChange={(e) => setEnglishName(e.target.value)}
                   required
-                  className="h-12 bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl transition-all duration-300 [color-scheme:light]"
+                  className="h-12 rounded-xl border-stone-300 bg-stone-50/70 text-stone-900 placeholder:text-stone-400 focus:border-amber-500 focus:ring-amber-200"
                 />
+              </Field>
+
+              <Field label="Gender" hint="Used to fit the name's tone.">
+                <Select
+                  value={gender}
+                  onValueChange={(v) => setGender(v as "male" | "female" | "other")}
+                >
+                  <SelectTrigger className="h-12 w-full rounded-xl border-stone-300 bg-stone-50/70 text-stone-900 focus:border-amber-500 focus:ring-amber-200">
+                    <SelectValue placeholder="Choose one" />
+                  </SelectTrigger>
+                  <SelectContent
+                    align="start"
+                    sideOffset={8}
+                    alignItemWithTrigger={false}
+                    className="border-stone-200 bg-white text-stone-800 shadow-lg"
+                  >
+                    <SelectItem value="male" className="focus:bg-stone-100 focus:text-stone-900">
+                      Male
+                    </SelectItem>
+                    <SelectItem value="female" className="focus:bg-stone-100 focus:text-stone-900">
+                      Female
+                    </SelectItem>
+                    <SelectItem value="other" className="focus:bg-stone-100 focus:text-stone-900">
+                      Other / Prefer not to say
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Birth date" hint="Sets your season &amp; element.">
+                  <Input
+                    id="birthDate"
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    required
+                    className="h-12 rounded-xl border-stone-300 bg-stone-50/70 text-stone-900 focus:border-amber-500 focus:ring-amber-200 [color-scheme:light]"
+                  />
+                </Field>
+
+                <Field label="Birth time" hint="Optional — sharpens the read." optional>
+                  <Input
+                    id="birthTime"
+                    type="time"
+                    value={birthTime}
+                    onChange={(e) => setBirthTime(e.target.value)}
+                    className="h-12 rounded-xl border-stone-300 bg-stone-50/70 text-stone-900 focus:border-amber-500 focus:ring-amber-200 [color-scheme:light]"
+                  />
+                </Field>
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="birthTime"
-                  className="text-sm font-medium text-stone-600"
-                >
-                  Birth Time
-                  <span className="ml-2 text-xs font-normal text-stone-400">
-                    Optional
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-center text-sm text-red-700"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="group h-12 w-full rounded-full text-base font-medium text-white shadow-lg transition-all duration-300 disabled:opacity-70"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #c2392c 0%, #a32419 50%, #7e1810 100%)",
+                  boxShadow: "0 14px 40px -16px rgba(162, 36, 25, 0.55)",
+                }}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Dipping the brush…</span>
                   </span>
-                </label>
-                <Input
-                  id="birthTime"
-                  type="time"
-                  value={birthTime}
-                  onChange={(e) => setBirthTime(e.target.value)}
-                  className="h-12 bg-stone-50 border-stone-300 text-stone-800 focus:border-amber-400 focus:ring-amber-100 rounded-xl transition-all duration-300 [color-scheme:light]"
-                />
-              </div>
-            </div>
+                ) : (
+                  <span className="flex items-center justify-center gap-2.5">
+                    <span>Write my Chinese name</span>
+                    <span
+                      className="grid h-5 w-5 place-items-center rounded-full bg-white/20 text-xs transition-transform duration-300 group-hover:translate-x-0.5"
+                      aria-hidden
+                    >
+                      →
+                    </span>
+                  </span>
+                )}
+              </Button>
 
-            <p className="-mt-2 text-xs text-stone-400">
-              Add a birth time if you want the name to lean on a more precise element profile.
-            </p>
-
-            {/* Error Message */}
-            <AnimatePresence>
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="text-sm text-red-600 text-center py-2 px-4 bg-red-50 rounded-lg border border-red-100"
-                >
-                  {error}
-                </motion.p>
-              )}
-            </AnimatePresence>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 text-base font-medium bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white border-0 rounded-xl transition-all duration-300 disabled:opacity-70 shadow-md hover:shadow-lg"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Revealing your name...</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>Discover My Chinese Name</span>
-                </span>
-              )}
-            </Button>
-          </form>
-
-          {/* Feature highlights */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 flex justify-center gap-6 text-xs"
-          >
-            <span className="flex items-center gap-1.5 text-stone-400">
-              <Gift className="w-4 h-4 text-amber-500" />
-              <span>100% Free</span>
-            </span>
-            <span className="flex items-center gap-1.5 text-stone-400">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Instant</span>
-            </span>
-            <span className="flex items-center gap-1.5 text-stone-400">
-              <BookOpen className="w-4 h-4 text-amber-500" />
-              <span>Culturally Rich</span>
-            </span>
-          </motion.div>
-        </div>
-        </Card>
+              <p className="text-center text-xs text-stone-400">
+                Free · no signup · ~30 seconds · we don&apos;t store your details
+              </p>
+            </form>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Results */}
       <AnimatePresence mode="wait">
         {result && (
           <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            id="name-result"
+            initial={{ opacity: 0, y: 40, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.98 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-10 max-w-6xl mx-auto"
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="mx-auto mt-14 max-w-6xl"
           >
             <NameResult result={result} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Try Again Button */}
       <AnimatePresence>
         {result && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ delay: 0.3 }}
-            className="mt-6 text-center max-w-6xl mx-auto"
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ delay: 0.2 }}
+            className="mx-auto mt-8 max-w-6xl text-center"
           >
             <Button
               onClick={resetForm}
               variant="ghost"
-              className="text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-all duration-300"
+              className="text-stone-500 hover:bg-stone-100 hover:text-stone-800"
             >
-              Generate Another Name
+              ↺ Write another name
             </Button>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  optional,
+  children,
+}: {
+  label: string;
+  hint: string;
+  optional?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between">
+        <label className="text-sm font-medium text-stone-700">{label}</label>
+        {optional && (
+          <span className="text-[11px] uppercase tracking-wider text-stone-400">
+            optional
+          </span>
+        )}
+      </div>
+      {children}
+      <p className="text-xs text-stone-500" dangerouslySetInnerHTML={{ __html: hint }} />
     </div>
   );
 }

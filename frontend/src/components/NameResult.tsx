@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Download, Share2, Sparkles, Heart, BookOpen } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import PremiumUnlock from "./PremiumUnlock";
+import FeedbackWidget from "./feedback/FeedbackWidget";
 
 interface NameResultProps {
   result: {
@@ -25,257 +25,220 @@ export default function NameResult({ result }: NameResultProps) {
 
   const toStructuredMarkdown = (text: string) => {
     const normalized = text.replace(/\s+/g, " ").trim();
-    if (!normalized) {
-      return "";
-    }
-
+    if (!normalized) return "";
     const sentences = normalized
       .split(/(?<=[.!?。])/)
-      .map((sentence) => sentence.trim())
+      .map((s) => s.trim())
       .filter(Boolean);
-
-    if (sentences.length <= 1) {
-      return normalized;
-    }
-
-    return sentences.map((sentence) => `- ${sentence}`).join("\n");
+    if (sentences.length <= 1) return normalized;
+    return sentences.map((s) => `- ${s}`).join("\n");
   };
 
   const handleShare = async () => {
     const shareText = `My Chinese name is ${result.chineseName} (${result.pinyin}) — ${result.meaning}.`;
-
     try {
       if (navigator.share) {
-        await navigator.share({
-          title: "My Chinese Name",
-          text: shareText,
-        });
+        await navigator.share({ title: "My Chinese Name", text: shareText });
       } else {
         await navigator.clipboard.writeText(shareText);
         setShareCopied(true);
         window.setTimeout(() => setShareCopied(false), 1800);
       }
     } catch {
-      // Ignore user cancellation or clipboard failures
+      // ignore
     }
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full"
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative overflow-hidden rounded-3xl border border-stone-200/80 bg-white/85 backdrop-blur"
+        style={{ boxShadow: "0 30px 80px -40px rgba(60, 38, 22, 0.22)" }}
       >
-        <Card className="relative overflow-hidden rounded-2xl shadow-lg border border-amber-200 bg-white">
-          <div
-            className="absolute top-0 left-0 right-0 h-1"
-            style={{
-              background: "linear-gradient(90deg, #b91c1c, #d97706, #b91c1c)",
-            }}
-          />
+        {/* Top dotted ornament rule */}
+        <div
+          aria-hidden
+          className="absolute left-1/2 top-6 hidden h-px w-48 -translate-x-1/2 md:block"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(60,38,22,0.4) 1px, transparent 1.5px)",
+            backgroundSize: "8px 1px",
+          }}
+        />
 
-          <div className="relative p-8 md:p-10 lg:p-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-center mb-8"
-            >
-              <p className="text-amber-600 text-sm uppercase tracking-widest mb-2">
-                Your Chinese Name
-              </p>
+        <div className="relative px-6 py-12 md:px-12 md:py-16">
+          {/* Hero name */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.7 }}
+            className="text-center"
+          >
+            <p className="text-xs uppercase tracking-[0.4em] text-stone-500">
+              你的中文名 — Your Chinese Name
+            </p>
 
+            <div className="relative mt-7">
+              {/* Big name */}
+              <motion.h2
+                initial={{ opacity: 0, scale: 0.85, filter: "blur(10px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                transition={{ delay: 0.25, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                className="text-[clamp(4.5rem,12vw,9rem)] font-bold leading-[0.95] tracking-tight"
+                style={{
+                  fontFamily: "'Noto Serif SC', serif",
+                  color: "#1f1410",
+                  textShadow: "0 8px 18px rgba(60, 38, 22, 0.18)",
+                }}
+              >
+                {result.chineseName}
+              </motion.h2>
+
+              {/* Red seal */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                initial={{ opacity: 0, scale: 0.5, rotate: -25 }}
+                animate={{ opacity: 1, scale: 1, rotate: -10 }}
+                transition={{ delay: 0.9, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute right-[10%] top-1 md:right-[18%]"
               >
-                <h2
-                  className="text-7xl md:text-8xl font-bold leading-none"
-                  style={{
-                    fontFamily: "'Noto Serif SC', serif",
-                    background: "linear-gradient(180deg, #292524 0%, #b91c1c 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
-                  {result.chineseName}
-                </h2>
+                <ResultSeal text={result.chineseName.slice(-1)} />
               </motion.div>
+            </div>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-xl text-stone-400 mt-4 font-light tracking-[0.15em]"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
-              >
-                {result.pinyin}
-              </motion.p>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-sm text-stone-500 mt-2 italic"
-              >
-                &ldquo;{result.meaning}&rdquo;
-              </motion.p>
-
-              <div className="mt-5 flex flex-wrap justify-center gap-2.5">
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700">
-                  Sound-matched
-                </span>
-                <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-600">
-                  Birth-profile tuned
-                </span>
-                <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-600">
-                  Keepsake-ready
-                </span>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="grid gap-4 lg:grid-cols-3 mb-8"
+              className="mt-6 text-xl tracking-[0.18em] text-stone-500"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
             >
-              <Card className="p-5 rounded-xl bg-stone-50 border border-stone-200">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-amber-700 text-sm font-medium mb-1">
-                      Cultural Significance
-                    </h3>
-                    <MarkdownText content={toStructuredMarkdown(result.culturalExplanation)} />
-                  </div>
-                </div>
-              </Card>
+              {result.pinyin}
+            </motion.p>
 
-              <Card className="p-5 rounded-xl bg-stone-50 border border-stone-200">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-amber-700 text-sm font-medium mb-1">
-                      Sound Bridge
-                    </h3>
-                    <MarkdownText content={toStructuredMarkdown(result.pronunciationMapping)} />
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-5 rounded-xl bg-stone-50 border border-stone-200">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Heart className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-amber-700 text-sm font-medium mb-1">
-                      Element Balance
-                    </h3>
-                    <MarkdownText content={toStructuredMarkdown(result.elementAnalysis)} />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65 }}
+              className="mx-auto mt-3 max-w-md text-stone-700"
+            >
+              <span className="italic">“{result.meaning}”</span>
+            </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mb-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="mt-6 flex flex-wrap justify-center gap-2"
             >
-              <Card className="p-5 rounded-xl bg-stone-50 border border-stone-200">
-                <h3 className="text-amber-700 text-sm font-medium mb-4 text-center">
-                  Character Breakdown
-                </h3>
-                <div className="flex justify-center gap-12">
-                  {result.suggestedCharacters.map((char, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.6 + index * 0.1 }}
-                      className="text-center"
-                    >
-                      <p
-                        className="text-5xl md:text-6xl font-bold leading-none"
-                        style={{
-                          fontFamily: "'Noto Serif SC', serif",
-                          background: "linear-gradient(180deg, #292524 0%, #57534e 100%)",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                          backgroundClip: "text",
-                        }}
-                      >
-                        {char.character}
-                      </p>
-                      <p className="text-stone-500 text-xs mt-2 max-w-20">
-                        {char.meaning}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </Card>
+              <Tag>Sound-matched</Tag>
+              <Tag>Birth-profile tuned</Tag>
+              <Tag>Keepsake-ready</Tag>
             </motion.div>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="pt-6 border-t border-stone-200"
-            >
-              <p className="text-center text-stone-500 text-sm mb-4">
-                Save your result as a collectible card or share your new Chinese name now
-              </p>
-
-              <div className="flex gap-3 max-w-xl mx-auto">
-                <Button
-                  className="flex-1 h-11 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white border-0 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg"
-                  onClick={() =>
-                    document
-                      .getElementById("premium-upgrade")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
+          {/* Character breakdown */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.95 }}
+            className="mt-14"
+          >
+            <p className="text-center text-xs uppercase tracking-[0.3em] text-stone-500">
+              字解 — Character Breakdown
+            </p>
+            <div className="mt-7 flex flex-wrap items-start justify-center gap-8 md:gap-14">
+              {result.suggestedCharacters.map((char, idx) => (
+                <motion.div
+                  key={`${char.character}-${idx}`}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.0 + idx * 0.1 }}
+                  className="text-center"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Save as Card
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-11 border-stone-300 text-stone-600 hover:bg-stone-50 hover:text-stone-800 rounded-xl transition-all duration-300 px-4"
-                  onClick={handleShare}
-                >
-                  <Share2 className="w-4 h-4" />
-                </Button>
-              </div>
+                  <div
+                    className="grid h-24 w-24 place-items-center rounded-md text-5xl font-bold text-stone-900"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, #fdf6e6 0%, #f0e2c2 100%)",
+                      boxShadow: "inset 0 0 0 1px rgba(140,100,60,0.25)",
+                      fontFamily: "'Noto Serif SC', serif",
+                    }}
+                  >
+                    {char.character}
+                  </div>
+                  <p className="mt-3 max-w-[8rem] text-sm leading-relaxed text-stone-600">
+                    {char.meaning}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
 
-              <div className="mt-3 text-center text-xs text-stone-400">
-                {shareCopied ? "Copied to clipboard" : "Share-ready text available in one tap"}
-              </div>
+          {/* Three explanation columns */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2 }}
+            className="mt-14 grid gap-5 md:grid-cols-3"
+          >
+            <ExplainCard label="文化 Cultural" tone="red">
+              <MarkdownText content={toStructuredMarkdown(result.culturalExplanation)} />
+            </ExplainCard>
+            <ExplainCard label="声 Sound Bridge" tone="amber">
+              <MarkdownText content={toStructuredMarkdown(result.pronunciationMapping)} />
+            </ExplainCard>
+            <ExplainCard label="五行 Element" tone="ink">
+              <MarkdownText content={toStructuredMarkdown(result.elementAnalysis)} />
+            </ExplainCard>
+          </motion.div>
 
-              <div className="flex justify-center gap-4 mt-4 text-xs text-stone-400">
-                <span className="flex items-center gap-1">
-                  <Heart className="w-3 h-3 text-red-400" />
-                  <span>Made with care</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Premium upgrades below</span>
-                </span>
-              </div>
-            </motion.div>
-          </div>
-        </Card>
+          {/* Action buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.4 }}
+            className="mt-12 border-t border-stone-200/80 pt-8"
+          >
+            <p className="text-center text-sm text-stone-500">
+              Save it as a calligraphy card, or share it with a friend who&apos;ll
+              love it.
+            </p>
+            <div className="mx-auto mt-5 flex max-w-md gap-3">
+              <Button
+                className="h-11 flex-1 rounded-full text-white"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #c2392c 0%, #a32419 50%, #7e1810 100%)",
+                  boxShadow: "0 14px 40px -16px rgba(162, 36, 25, 0.55)",
+                }}
+                onClick={() =>
+                  document
+                    .getElementById("premium-upgrade")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Save as Card
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 rounded-full border-stone-300 px-5 text-stone-700 hover:bg-stone-100"
+                onClick={handleShare}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="mt-3 text-center text-xs text-stone-400">
+              {shareCopied ? "Copied to clipboard" : "Tap share to copy a beautiful blurb"}
+            </p>
+          </motion.div>
+        </div>
       </motion.div>
+
+      <FeedbackWidget chineseName={result.chineseName} />
 
       <PremiumUnlock
         chineseName={result.chineseName}
@@ -283,5 +246,81 @@ export default function NameResult({ result }: NameResultProps) {
         meaning={result.meaning}
       />
     </div>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-stone-200 bg-white/80 px-3 py-1 text-xs text-stone-600">
+      {children}
+    </span>
+  );
+}
+
+function ExplainCard({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone: "red" | "amber" | "ink";
+  children: React.ReactNode;
+}) {
+  const toneStyles: Record<string, { swatch: string; label: string }> = {
+    red: { swatch: "#a32419", label: "text-[#a32419]" },
+    amber: { swatch: "#b8860b", label: "text-[#a8770a]" },
+    ink: { swatch: "#3a2a1f", label: "text-stone-700" },
+  };
+  const style = toneStyles[tone];
+
+  return (
+    <div className="rounded-2xl border border-stone-200/80 bg-stone-50/60 p-5 backdrop-blur">
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ background: style.swatch }}
+        />
+        <h3 className={`text-xs font-semibold uppercase tracking-[0.18em] ${style.label}`}>
+          {label}
+        </h3>
+      </div>
+      <div className="text-sm leading-relaxed text-stone-600">{children}</div>
+    </div>
+  );
+}
+
+function ResultSeal({ text }: { text: string }) {
+  return (
+    <svg width="68" height="68" viewBox="0 0 68 68" aria-hidden>
+      <defs>
+        <filter id="sealNoise2">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="6" />
+          <feDisplacementMap in="SourceGraphic" scale="1.4" />
+        </filter>
+      </defs>
+      <g filter="url(#sealNoise2)">
+        <rect
+          x="3"
+          y="3"
+          width="62"
+          height="62"
+          rx="3"
+          fill="#b9251f"
+          stroke="#7e1810"
+          strokeWidth="2"
+        />
+        <text
+          x="34"
+          y="46"
+          textAnchor="middle"
+          fontSize="36"
+          fontWeight="700"
+          fill="#fbf2e2"
+          fontFamily="'Noto Serif SC', serif"
+        >
+          {text}
+        </text>
+      </g>
+    </svg>
   );
 }
