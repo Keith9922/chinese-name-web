@@ -382,12 +382,11 @@ Input: Lily, female, autumn birth (Metal dominant; balance toward Wood/Water)
 Good: 黎清岚 (Lí Qīng Lán). Lí for the L-sound; 清岚 = "clear mountain mist" — water imagery softens the Metal autumn, lily-like in clarity.
 Bad: 莉莉 (Lì lì) — transliteration. 张敏 — placeholder.`;
 
-// Vercel Hobby caps serverless functions at 10s of execution. The AI call
-// alone often exceeds that, so we race it against a hard timeout and fall
-// back to the deterministic naming algorithm if the model is too slow.
-// On Pro you can extend NAME_AI_TIMEOUT_MS via env to (say) 50000 and let
-// the model take its time.
-const DEFAULT_TIMEOUT_MS = 9000;
+// We run the naming route on Vercel's Edge runtime which gives 30s on Hobby
+// and longer on Pro. We race the API call against a hard timeout slightly
+// shorter than that so we can fall back gracefully without 504-ing.
+// On Pro you can extend NAME_AI_TIMEOUT_MS via env to e.g. 60000.
+const DEFAULT_TIMEOUT_MS = 27000;
 
 async function callClaude(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;

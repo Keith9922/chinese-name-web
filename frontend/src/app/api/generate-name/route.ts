@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateName, NameGenerationInput } from "@/lib/server/name-generator";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
+// Edge runtime gets up to 30s on Hobby (vs 10s for Node functions). Most
+// MiniMax calls finish well inside that budget.
+export const runtime = "edge";
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
