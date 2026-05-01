@@ -39,7 +39,16 @@ export default function NameForm() {
     try {
       if (!gender) throw new Error("Gender is required");
 
-      const response = await fetch("/api/generate-name", {
+      // When NEXT_PUBLIC_BACKEND_URL is set, hit our self-hosted naming
+      // backend directly — that machine has no Vercel timeout cap, so the
+      // model gets the full 60s it sometimes needs. Falls back to the
+      // Vercel /api route in dev or if the env var is unset.
+      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
+      const endpoint = backend
+        ? `${backend}/api/generate-name`
+        : "/api/generate-name";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
