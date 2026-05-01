@@ -8,6 +8,7 @@ import MarkdownText from "./MarkdownText";
 import NamePronounce from "./NamePronounce";
 import CalligraphyStyles from "./CalligraphyStyles";
 import NameBrushVideo from "./NameBrushVideo";
+import NameDownloads from "./NameDownloads";
 import PremiumUnlock from "./PremiumUnlock";
 import FeedbackWidget from "./feedback/FeedbackWidget";
 
@@ -236,6 +237,21 @@ export default function NameResult({ result, gender }: NameResultProps) {
             className="mt-8"
           >
             <CalligraphyStyles chineseName={result.chineseName} />
+          </motion.div>
+
+          {/* Downloads (HD card + tattoo SVG) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.25 }}
+            className="mt-8"
+          >
+            <NameDownloads
+              chineseName={result.chineseName}
+              pinyin={result.pinyin}
+              meaning={result.meaning}
+              classicalAllusion={result.classicalAllusion}
+            />
           </motion.div>
 
           {/* Three explanation columns */}
