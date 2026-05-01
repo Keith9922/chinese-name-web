@@ -14,12 +14,12 @@ interface StylePreset {
   en: string;
   blurb: string;
   fontVar: string;
+  /** When true, render as a vertical column of red seal squares instead of plain horizontal text. */
+  seal?: boolean;
+  /** When true, treat the style as not yet released and lock it behind premium. */
   premium?: boolean;
 }
 
-// All free fonts loaded in app/layout.tsx — exposed via CSS variables.
-// Premium fonts (篆 / 甲骨) require self-hosted assets we haven't shipped yet,
-// so they show as "coming soon" placeholders rather than broken renders.
 const STYLES: StylePreset[] = [
   {
     id: "kaishu",
@@ -67,7 +67,17 @@ const STYLES: StylePreset[] = [
     id: "zhuanshu",
     zh: "篆书",
     en: "Seal",
-    blurb: "The ancestor of all Chinese script — curling, archaic, used on official seals.",
+    blurb:
+      "The form found on imperial seals — characters carved into vermilion, archaic and authoritative. Stamped, never typed.",
+    fontVar: "var(--font-cjk)",
+    seal: true,
+  },
+  {
+    id: "jiaguwen",
+    zh: "甲骨文",
+    en: "Oracle Bone",
+    blurb:
+      "The earliest Chinese writing — bone and shell oracles from the Shang dynasty. Coming soon, on the Heirloom tier.",
     fontVar: "var(--font-cjk)",
     premium: true,
   },
@@ -106,17 +116,21 @@ export default function CalligraphyStyles({ chineseName }: Props) {
             animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="relative"
+            className="relative flex flex-col items-center"
           >
-            <div
-              className="text-[clamp(4rem,11vw,8rem)] font-bold leading-[1] text-stone-900"
-              style={{
-                fontFamily: active.fontVar,
-                letterSpacing: active.id === "caoshu" ? "0.08em" : "0",
-              }}
-            >
-              {chineseName}
-            </div>
+            {active.seal ? (
+              <SealRender chineseName={chineseName} />
+            ) : (
+              <div
+                className="text-[clamp(4rem,11vw,8rem)] font-bold leading-[1] text-stone-900"
+                style={{
+                  fontFamily: active.fontVar,
+                  letterSpacing: active.id === "caoshu" ? "0.08em" : "0",
+                }}
+              >
+                {chineseName}
+              </div>
+            )}
             <div className="mt-4 flex flex-col items-center gap-1.5">
               <span
                 className="text-sm uppercase tracking-[0.3em] text-amber-700/80"
@@ -163,12 +177,61 @@ export default function CalligraphyStyles({ chineseName }: Props) {
       </div>
 
       <p className="mt-4 text-center text-xs text-stone-400">
-        篆书 / 甲骨文 styles unlock with the{" "}
-        <a href="#premium-upgrade" className="text-amber-700 underline-offset-2 hover:underline">
-          Signature Collection
-        </a>
-        . High-resolution downloads of any style come with the keepsake card.
+        甲骨文 styles unlock with the upcoming Heirloom tier. High-resolution
+        downloads of any visible style are available below.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Renders the name as a vertical seal column — red squares with white
+ * characters, lightly distressed, like an actual 印章. Authentic seal-script
+ * fonts aren't free, so we lean on the visual gestalt of a stamp instead.
+ */
+function SealRender({ chineseName }: { chineseName: string }) {
+  const chars = [...chineseName];
+  return (
+    <div className="flex flex-col gap-1.5">
+      {chars.map((ch, i) => (
+        <SealCell key={i} character={ch} index={i} />
+      ))}
+    </div>
+  );
+}
+
+function SealCell({ character, index }: { character: string; index: number }) {
+  // Tiny per-cell rotation for hand-stamped feel
+  const rot = ((index * 7) % 5) - 2;
+  return (
+    <div
+      style={{
+        width: "clamp(78px, 11vw, 130px)",
+        height: "clamp(78px, 11vw, 130px)",
+        background:
+          "linear-gradient(135deg, #c2392c 0%, #a32419 50%, #7e1810 100%)",
+        borderRadius: "6px",
+        boxShadow:
+          "inset 0 0 0 4px #fbf2e2, inset 0 0 0 5px #7e1810, 0 12px 30px -12px rgba(126, 24, 16, 0.4)",
+        display: "grid",
+        placeItems: "center",
+        transform: `rotate(${rot}deg)`,
+        // Subtle texture-y darken in corners
+        backgroundBlendMode: "multiply",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-cjk)",
+          fontWeight: 700,
+          fontSize: "clamp(46px, 7vw, 80px)",
+          color: "#fbf2e2",
+          lineHeight: 1,
+          textShadow: "1px 1px 0 rgba(31, 7, 5, 0.35)",
+        }}
+      >
+        {character}
+      </span>
     </div>
   );
 }
