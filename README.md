@@ -1,183 +1,123 @@
-# Chinese Name Generator
+# 墨名 · Ink Name
 
-Discover your personalized Chinese name based on ancient wisdom and modern AI.
+A Chinese name designed by sound, season, and the five elements — for the
+world. Free to discover, beautiful to keep.
 
-![Chinese Name Generator](https://img.shields.io/badge/Status-Beta-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+> **The brand:** "Ink Name". The product writes a real Chinese name for an
+> English-speaker the way a Chinese parent would: by listening to the sound,
+> reading the birth profile (八字 / 五行), and balancing the elements through
+> character imagery. Then it shows the result in calligraphy with a red seal.
 
-## 🌟 Features
+## What changed in this redesign
 
-- **AI-Powered Name Generation** - Get a meaningful Chinese name based on your English name, gender, and birth date
-- **Cultural Deep Dive** - Learn the cultural significance and meaning behind your name
-- **Bazi Analysis** - Traditional Chinese astrology meets modern AI
-- **Calligraphy Cards** - Unlock beautiful downloadable calligraphy artwork
-- **Multiple Pricing Tiers** - Free basic generation, premium detailed analysis
+- **Single-stack architecture.** The FastAPI backend was ported into Next.js API
+  routes (`/api/generate-name`, `/api/create-checkout-session`,
+  `/api/checkout-session`, `/api/feedback`). The whole app — UI and AI calls —
+  now ships to Vercel as one codebase. The Python backend in `/backend/` is
+  kept around as a reference but is no longer needed at runtime.
+- **`/` is a true landing page** with a bold ink-wash aesthetic: hanging-scroll
+  hero with a 名 calligraphy character + red seal, drifting characters in the
+  background, and ritual-style section markers. See
+  `frontend/src/app/page.tsx`.
+- **`/generate` is the tool.** The naming form has a corner ribbon (起), softer
+  fields, and the result page now leads with a giant calligraphy name framed
+  by a real-looking seal.
+- **Inline feedback widget** sits beneath every result. Submissions post to a
+  Lark (Feishu) custom-bot webhook — you see them in your Lark group within a
+  second. Optional Bitable mirroring is supported for browseable history.
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- Python 3.10+
-- pnpm (recommended) or npm
-
-### Frontend Setup
+## Run it locally
 
 ```bash
 cd frontend
 npm install
+cp .env.example .env.local   # fill in keys (see below)
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open <http://localhost:3000>.
 
-### Backend Setup
+## Environment variables
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env  # Configure your API keys
-python main.py
-```
+`frontend/.env.local` (or `.env`) — full reference in `frontend/.env.example`.
 
-The API will be available at [http://localhost:8000](http://localhost:8000).
+| Key | Required? | Notes |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | for live names | MiniMax / Anthropic-compatible. Without it, the route falls back to a deterministic JS-side name. |
+| `ANTHROPIC_BASE_URL` | optional | Defaults to `https://api.minimaxi.com/anthropic`. |
+| `MINIMAX_MODEL` | optional | Defaults to `MiniMax-M2`. |
+| `STRIPE_SECRET_KEY` | for paid plans | Leave blank → mock mode that issues fake-but-valid success URLs. |
+| `STRIPE_WEBHOOK_SECRET` | optional | Only needed if you wire up a real webhook. |
+| `NEXT_PUBLIC_SITE_URL` / `FRONTEND_URL` | optional | Set on Vercel to your deployed URL so Stripe redirects land in the right place. |
+| `LARK_WEBHOOK_URL` | recommended | Lark group → Settings → Bots → Custom Bot → copy webhook. Every feedback becomes a chat message. |
+| `LARK_APP_ID` + `LARK_APP_SECRET` + `LARK_BITABLE_APP_TOKEN` + `LARK_BITABLE_TABLE_ID` | optional | If set, feedback also writes a row into your Bitable. Required fields: `Rating`, `Comment`, `Chinese Name`, `Source`, `Timestamp`. |
 
-### Environment Variables
-
-Create a `.env` file in the `backend` directory:
-
-```env
-# MiniMax API (for name generation)
-ANTHROPIC_API_KEY=your_api_key_here
-ANTHROPIC_BASE_URL=https://api.minimaxi.com/anthropic
-
-# Stripe (for payments)
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-
-# Frontend URL (for CORS)
-FRONTEND_URL=http://localhost:3000
-```
-
-## 📁 Project Structure
-
-```
-chinese-name-web/
-├── frontend/                 # Next.js 16 frontend
-│   ├── src/
-│   │   ├── app/            # App router pages
-│   │   │   ├── api/        # API routes
-│   │   │   └── page.tsx    # Main landing page
-│   │   └── components/      # React components
-│   │       ├── NameForm.tsx
-│   │       ├── NameResult.tsx
-│   │       └── ui/          # shadcn/ui components
-│   └── tests/               # Playwright E2E tests
-│
-├── backend/                  # FastAPI backend
-│   ├── api/
-│   │   └── routes.py        # API endpoints
-│   ├── models/
-│   │   └── schemas.py       # Pydantic models
-│   ├── services/
-│   │   ├── name_generator.py
-│   │   └── stripe_service.py
-│   └── main.py              # FastAPI app entry
-│
-└── CLAUDE.md               # Developer guide
-```
-
-## 🔌 API Endpoints
-
-### Generate Chinese Name
+## Deploy to Vercel
 
 ```bash
-POST /api/generate-name
-Content-Type: application/json
-
-{
-  "englishName": "John Smith",
-  "gender": "male",
-  "birthDate": "1990-05-15"
-}
-```
-
-Response:
-```json
-{
-  "chineseName": "李明",
-  "pinyin": "Lǐ Míng",
-  "meaning": "Bright and intelligent",
-  "culturalExplanation": "This name combines...",
-  "suggestedCharacters": [
-    {"character": "李", "meaning": "plum tree, common surname"},
-    {"character": "明", "meaning": "bright, intelligent"}
-  ]
-}
-```
-
-### Create Checkout Session
-
-```bash
-POST /api/create-checkout-session
-Content-Type: application/json
-
-{
-  "nameResult": { ... }
-}
-```
-
-## 🎨 Tech Stack
-
-**Frontend:**
-- Next.js 16 (App Router)
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- Framer Motion
-- shadcn/ui
-- Playwright (testing)
-
-**Backend:**
-- FastAPI
-- Python 3.10+
-- MiniMax API (Anthropic-compatible)
-- Stripe (payments)
-
-## 📦 Deploy
-
-### Frontend (Vercel)
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/import/git?repo=https://github.com/Keith9922/chinese-name-web)
-
-### Backend (Railway/Render)
-
-1. Connect your GitHub repo to Railway or Render
-2. Set environment variables
-3. Deploy automatically on push
-
-## 🧪 Testing
-
-```bash
-# Run E2E tests
 cd frontend
-npx playwright test
-
-# Run with UI
-npx playwright test --ui
-
-# Run headed
-npx playwright test --headed
+npx vercel        # link the project
+npx vercel env add ANTHROPIC_API_KEY    production
+npx vercel env add LARK_WEBHOOK_URL     production
+# … add the rest from .env.example as needed
+npx vercel deploy --prod
 ```
 
-## 📜 License
+`frontend/vercel.json` is already configured (Node runtime, regions, function
+timeouts: 60s for `/api/generate-name`, 30s for checkout, 15s for feedback).
 
-MIT License - feel free to use this project for learning and development.
+> **Note on Hobby tier limits:** the default Vercel Hobby plan caps function
+> duration at 10s, which can be tight for the model. If you see timeouts,
+> upgrade to Pro (60s allowed) or shorten `max_tokens` in
+> `frontend/src/lib/server/name-generator.ts`.
 
-## 🙏 Acknowledgments
+## Wiring up the feedback Lark Bot
 
-- Chinese naming traditions from thousands of years of history
-- MiniMax API for AI-powered name generation
-- shadcn/ui for beautiful components
+1. In Lark / Feishu, open any group → group settings → **Bots** → **Add Bot** →
+   **Custom Bot**. Name it "Ink Name Feedback".
+2. Copy the **Webhook URL** it gives you.
+3. Paste it into `LARK_WEBHOOK_URL` (locally in `.env.local`, on Vercel via
+   `vercel env add`). That's it — open the group on phone or web and you'll
+   see every submission within ~1 second.
+
+Optional: to also keep a tabular log, create a Lark Bitable with columns
+`Rating`, `Comment`, `Chinese Name`, `Source`, `Timestamp`, then create a
+self-built app with `bitable:app` permission and fill in the four `LARK_*`
+env vars.
+
+## Project layout
+
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx              # NEW Landing page (server component)
+│   │   ├── generate/page.tsx     # The tool (form + result)
+│   │   ├── success/, cancel/     # Stripe redirects
+│   │   └── api/                  # generate-name, checkout, feedback (all serverless)
+│   ├── components/
+│   │   ├── landing/              # HeroInk, NameShowcase, RitualSection, …
+│   │   ├── shared/               # SiteHeader, SiteFooter, InkBackdrop
+│   │   ├── feedback/             # FeedbackWidget
+│   │   ├── NameForm.tsx
+│   │   ├── NameResult.tsx
+│   │   └── PremiumUnlock.tsx
+│   └── lib/
+│       └── server/               # name-generator.ts, stripe-service.ts, naming-data.ts
+├── vercel.json
+└── .env.example
+
+backend/                          # legacy — no longer required at runtime
+```
+
+## Tech stack
+
+- **Next.js 16.2 / React 19** with the App Router (Turbopack build)
+- **Tailwind CSS 4** + **shadcn/ui** + **Framer Motion** for animation
+- **Anthropic SDK** (pointed at MiniMax) for name generation
+- **Stripe SDK** for one-time keepsake purchases
+- **Lark / Feishu** webhook + Bitable for feedback collection
+
+## License
+
+MIT — adapt freely.

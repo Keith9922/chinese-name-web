@@ -1,25 +1,57 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cormorant_Garamond, Noto_Serif_SC, Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const notoSerif = Noto_Serif_SC({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "900"],
+  variable: "--font-cjk",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Chinese Name Generator | Discover Your Authentic Chinese Name",
-  description: "Based on ancient Chinese wisdom and the art of naming, discover the Chinese name that reflects your true identity and destiny. 100% free to try.",
-  keywords: "Chinese name generator, Chinese naming, Chinese culture, name meanings, Mandarin names",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ink-name.vercel.app",
+  ),
+  title: {
+    default: "Ink Name · Your name, rewritten in ink",
+    template: "%s · Ink Name",
+  },
+  description:
+    "A name five thousand years in the making, waiting for you. Chosen by sound, by season, and by the five elements — free to discover, beautiful to keep.",
+  keywords: [
+    "Chinese name generator",
+    "Chinese name for foreigners",
+    "Chinese calligraphy name",
+    "八字 name",
+    "五行 naming",
+    "Mandarin name",
+  ],
   openGraph: {
-    title: "Chinese Name Generator | Discover Your Authentic Chinese Name",
-    description: "Based on ancient Chinese wisdom and the art of naming, discover the Chinese name that reflects your true identity and destiny.",
+    title: "Ink Name · Your name, rewritten in ink",
+    description:
+      "A name five thousand years in the making, waiting for you. Chosen by sound, by season, and by the five elements.",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ink Name · 落墨即名",
+    description:
+      "A name five thousand years in the making, waiting for you.",
   },
 };
 
@@ -29,14 +61,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}>
-        {children}
-      </body>
+    <html
+      lang="en"
+      className={`dark ${inter.variable} ${cormorant.variable} ${notoSerif.variable}`}
+    >
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }
