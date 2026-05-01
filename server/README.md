@@ -16,11 +16,11 @@ This service runs on a regular box where there is no such cap.
 ```
 Browser (https://ink-name.vercel.app)
     │
-    ▼  https://*.trycloudflare.com/api/generate-name
-Cloudflare Tunnel
-    │
-    ▼  http://localhost:3002
-ink-name-backend (this code)
+    ▼  https://api.zhangrg.top/api/generate-name
+Cloudflare (HTTPS terminates here, named tunnel)
+    │  ┊
+    ▼  ┊  cloudflared on the VM (outbound, no port forward)
+ink-name-backend on http://localhost:3002 (this code)
     │
     ▼  https://api.minimaxi.com
 MiniMax
@@ -69,19 +69,56 @@ systemctl daemon-reload
 systemctl enable --now ink-name-backend
 ```
 
-Cloudflared:
+Cloudflared (named tunnel — stable URL on your own domain):
 
 ```bash
-# Quick tunnel — ephemeral URL, fine for staging:
+# 1. Create the tunnel via the Cloudflare API. Needs an API token with
+#    `Cloudflare Tunnel: Edit` (Account) + `DNS: Edit` (Zone), scoped to
+#    the zone you want to use.
+TOKEN=...  # Cloudflare API token
+ACCOUNT=...  # account ID
+ZONE=...     # zone ID for your domain
+
+# Create the tunnel — returns a tunnel ID
+curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/cfd_tunnel" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"ink-name","config_src":"cloudflare"}' | jq
+
+TUNNEL_ID=...
+
+# Set ingress: route hostname -> localhost:3002
+curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/cfd_tunnel/$TUNNEL_ID/configurations" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "ingress": [
+        {"hostname":"api.YOUR_DOMAIN.com","service":"http://localhost:3002"},
+        {"service":"http_status:404"}
+      ]
+    }
+  }'
+
+# Create a DNS CNAME pointing the chosen hostname at the tunnel
+curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d "{\"type\":\"CNAME\",\"name\":\"api\",\"content\":\"$TUNNEL_ID.cfargotunnel.com\",\"proxied\":true,\"ttl\":1}"
+
+# 2. Get the tunnel run-token + drop it on the box
+RUN_TOKEN=$(curl -s "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/cfd_tunnel/$TUNNEL_ID/token" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.result')
+echo "$RUN_TOKEN" > /root/.cloudflared/tunnel-token
+chmod 600 /root/.cloudflared/tunnel-token
+
+# 3. systemd unit
 cat > /etc/systemd/system/ink-name-tunnel.service <<E
 [Unit]
-Description=Ink Name Cloudflare Quick Tunnel
+Description=Ink Name Cloudflare Named Tunnel
 After=network.target ink-name-backend.service
 Requires=ink-name-backend.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/cloudflared tunnel --url http://localhost:3002 --no-autoupdate --metrics 127.0.0.1:0
+ExecStart=/bin/sh -c 'exec /usr/bin/cloudflared --no-autoupdate tunnel --metrics 127.0.0.1:0 run --token \$(cat /root/.cloudflared/tunnel-token)'
 Restart=on-failure
 RestartSec=10
 StandardOutput=append:/var/log/ink-name-tunnel.log
@@ -93,12 +130,11 @@ E
 
 systemctl daemon-reload
 systemctl enable --now ink-name-tunnel
-
-# Find the URL after a few seconds:
-grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /var/log/ink-name-tunnel.log | tail -1
 ```
 
-For a stable URL, use a named tunnel (requires Cloudflare account auth).
+For development / staging without a domain, the `--url http://localhost:3002`
+form gives you an ephemeral `*.trycloudflare.com` URL — same systemd unit,
+just a different ExecStart line.
 
 ## Files
 
