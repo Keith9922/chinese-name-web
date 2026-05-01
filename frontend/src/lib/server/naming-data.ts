@@ -106,3 +106,74 @@ export const HOUR_WINDOWS: ReadonlyArray<readonly [branch: string, element: stri
   ["午", "Fire", "11:00-12:59"], ["未", "Earth", "13:00-14:59"], ["申", "Metal", "15:00-16:59"],
   ["酉", "Metal", "17:00-18:59"], ["戌", "Earth", "19:00-20:59"], ["亥", "Water", "21:00-22:59"],
 ];
+
+// 后天八卦 mapping by season — gives the model an extra cultural axis beyond
+// the five elements. Each entry: trigram name, glyph, elemental affinity,
+// natural image (for poetic imagery), and an evocative English gloss.
+export interface TrigramReading {
+  name: string;        // 震
+  pinyin: string;      // Zhèn
+  glyph: string;       // ☳
+  element: string;     // Wood
+  image: string;       // 雷 / Thunder
+  archetype: string;   // arousal, the first stir of growth
+}
+
+export const SEASON_TRIGRAMS: Record<string, TrigramReading[]> = {
+  spring: [
+    { name: "震", pinyin: "Zhèn", glyph: "☳", element: "Wood", image: "雷 (Thunder)", archetype: "the first stir, awakening, decisive movement" },
+    { name: "巽", pinyin: "Xùn", glyph: "☴", element: "Wood", image: "风 (Wind)", archetype: "gentle penetration, gradual influence, supple grace" },
+  ],
+  summer: [
+    { name: "离", pinyin: "Lí", glyph: "☲", element: "Fire", image: "火 (Fire)", archetype: "brightness, clarity of mind, things that adhere and illuminate" },
+  ],
+  autumn: [
+    { name: "兑", pinyin: "Duì", glyph: "☱", element: "Metal", image: "泽 (Lake)", archetype: "joyousness, reflection, articulate speech" },
+    { name: "乾", pinyin: "Qián", glyph: "☰", element: "Metal", image: "天 (Heaven)", archetype: "creative force, integrity, self-mastery" },
+  ],
+  winter: [
+    { name: "坎", pinyin: "Kǎn", glyph: "☵", element: "Water", image: "水 (Water)", archetype: "abyss, perseverance through depth, fluid intelligence" },
+    { name: "艮", pinyin: "Gèn", glyph: "☶", element: "Earth", image: "山 (Mountain)", archetype: "stillness, knowing when to stop, unshakable presence" },
+  ],
+};
+
+// Seasonal lines from the Chinese classics — gives the model a real allusion
+// to weave into the cultural explanation rather than vague mood adjectives.
+export const SEASONAL_CLASSICAL_REFS: Record<string, string[]> = {
+  spring: [
+    "《诗经·小雅》: 蒹葭苍苍，白露为霜 — reeds dense and grey, dew becoming frost (later autumn, contrast).",
+    "《诗经·周南》: 桃之夭夭，灼灼其华 — the peach tree, young and lush, blossoms ablaze.",
+    "《论语》: 子在川上曰，逝者如斯夫 — the master by the river: thus do all things flow.",
+  ],
+  summer: [
+    "《诗经·邶风》: 习习谷风，以阴以雨 — gentle valley wind, with shade and rain.",
+    "《古诗十九首》: 青青园中葵，朝露待日晞 — the green sunflowers in the garden, dew waiting for the sun.",
+    "《楚辞》: 路漫漫其修远兮，吾将上下而求索 — the road is long and far, I shall seek up and down.",
+  ],
+  autumn: [
+    "《诗经·秦风》: 蒹葭苍苍，白露为霜 — reeds dense, dew turning to frost.",
+    "《诗经·小雅》: 鹤鸣九皋，声闻于天 — the crane cries in the marsh, its voice reaches heaven.",
+    "《楚辞》: 悲哉秋之为气也，萧瑟兮草木摇落 — autumn's spirit, mournful, leaves trembling.",
+  ],
+  winter: [
+    "《诗经·郑风》: 风雨如晦，鸡鸣不已 — wind and rain, dim as twilight; the cock crows on.",
+    "《楚辞》: 长太息以掩涕兮 — a long sigh, hiding tears.",
+    "《论语》: 岁寒，然后知松柏之后凋也 — only when the year grows cold do we know the pine and cypress are last to fall.",
+  ],
+};
+
+// Traits associated with each 生肖 — used to inform character-pair imagery.
+export const ZODIAC_TRAITS: Record<string, { traits: string; imagery: string }> = {
+  Rat: { traits: "clever, resourceful, adaptable, observant", imagery: "moonlight, granaries, wit" },
+  Ox: { traits: "patient, reliable, deliberate, strong-willed", imagery: "fields of jade green, steady plough, dawn" },
+  Tiger: { traits: "courageous, dignified, magnetic, decisive", imagery: "wind in the pines, mountain striding, golden eyes" },
+  Rabbit: { traits: "gentle, refined, artistic, serene", imagery: "lunar palace, clear pool, soft breeze" },
+  Dragon: { traits: "noble, transformative, visionary, generous", imagery: "rising clouds, jade-blue scales, hidden strength" },
+  Snake: { traits: "wise, mysterious, philosophical, graceful", imagery: "still water, coiled jade, midnight pearl" },
+  Horse: { traits: "free-spirited, energetic, frank, devoted", imagery: "open plain, galloping wind, sunrise" },
+  Goat: { traits: "kind, artistic, sensitive, principled", imagery: "mountain path, wild herbs, soft fleece" },
+  Monkey: { traits: "clever, lively, curious, inventive", imagery: "forest canopy, bright laughter, climbing vines" },
+  Rooster: { traits: "precise, observant, punctual, articulate", imagery: "first light, scarlet plumage, clear note" },
+  Dog: { traits: "loyal, righteous, protective, sincere", imagery: "guarding moon, true companion, warm hearth" },
+  Pig: { traits: "kind-hearted, sincere, generous, prosperous", imagery: "fertile fields, harvest table, abundance" },
+};

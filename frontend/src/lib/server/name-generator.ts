@@ -6,8 +6,12 @@ import {
   HEAVENLY_STEMS,
   HOUR_WINDOWS,
   LETTER_CANDIDATES,
+  SEASON_TRIGRAMS,
+  SEASONAL_CLASSICAL_REFS,
   SOUND_CANDIDATES,
   SURNAME_CANDIDATES,
+  TrigramReading,
+  ZODIAC_TRAITS,
 } from "./naming-data";
 
 export interface NameGenerationInput {
@@ -29,6 +33,7 @@ export interface NameGenerationResult {
   culturalExplanation: string;
   pronunciationMapping: string;
   elementAnalysis: string;
+  classicalAllusion?: string;
   suggestedCharacters: SuggestedCharacter[];
 }
 
@@ -38,7 +43,11 @@ interface BirthProfile {
   support: string[];
   yearGZ: string;
   zodiac: string;
+  zodiacTraits: string;
+  zodiacImagery: string;
   hourBranch: string | null;
+  trigrams: TrigramReading[];
+  classicalRef: string;
   balancingElements: string[];
   balancingImages: string;
   summary: string;
@@ -179,18 +188,39 @@ function buildBirthProfile(birthDate: string, birthTime: string | undefined): Bi
     ? ` Birth hour leans toward the ${hourBranch.branch} branch (${hourBranch.element}, ${hourBranch.window}).`
     : " Birth hour was not provided, so the reading uses date-based seasonality only.";
 
+  // Cultural reading: 后天八卦 trigrams for the season + zodiac traits +
+  // a representative seasonal classical line. These give the model real
+  // literary anchors instead of vague element words.
+  const trigrams = SEASON_TRIGRAMS[season] ?? [];
+  const trigramSummary = trigrams
+    .map((t) => `${t.name}卦 (${t.glyph} ${t.image}, ${t.archetype})`)
+    .join("; ");
+  const zodiacEntry = ZODIAC_TRAITS[zodiac] ?? { traits: "", imagery: "" };
+  // Pick a deterministic classical line so two requests for the same season
+  // don't oscillate randomly.
+  const refs = SEASONAL_CLASSICAL_REFS[season] ?? [];
+  const classicalRef = refs.length
+    ? refs[((solarYear + cycleIndex) % refs.length + refs.length) % refs.length]
+    : "";
+
   return {
     season,
     dominant,
     support,
     yearGZ: `${stemChar}${branchChar}`,
     zodiac,
+    zodiacTraits: zodiacEntry.traits,
+    zodiacImagery: zodiacEntry.imagery,
     hourBranch: hourBranch?.branch ?? null,
+    trigrams,
+    classicalRef,
     balancingElements,
     balancingImages,
     summary:
-      `Approximate birth profile points to a ${stemChar}${branchChar} year (${zodiac}) with ${season} qi leaning toward ${dominant}. ` +
-      `Helpful balancing emphasis can come from ${balancingElements.join(", ")} through imagery of ${balancingImages}.${timeLine}`,
+      `${stemChar}${branchChar} year, 生肖 ${zodiac} (${zodiacEntry.traits}). ` +
+      `${season.charAt(0).toUpperCase() + season.slice(1)} qi, ${dominant} dominant; ` +
+      `seasonal trigrams: ${trigramSummary}. ` +
+      `Helpful balancing emphasis: ${balancingElements.join(", ")} (${balancingImages}).${timeLine}`,
   };
 }
 
@@ -316,6 +346,15 @@ function normalizeResponse(parsed: Record<string, unknown>, ctx: FallbackContext
     (fields as Record<string, string>)[k] = "—";
   }
 
+  // classicalAllusion is optional — only surface if the model produced a
+  // non-empty string that actually looks like a quotation (contains 《 》 or
+  // single quote markers). Never invent one ourselves.
+  const rawAllusion = String(parsed.classicalAllusion ?? "").trim();
+  const classicalAllusion =
+    rawAllusion && rawAllusion !== "—" && rawAllusion.length >= 8
+      ? rawAllusion
+      : undefined;
+
   return {
     chineseName,
     pinyin: fields.pinyin,
@@ -323,6 +362,7 @@ function normalizeResponse(parsed: Record<string, unknown>, ctx: FallbackContext
     culturalExplanation: fields.culturalExplanation,
     pronunciationMapping: fields.pronunciationMapping,
     elementAnalysis: fields.elementAnalysis,
+    classicalAllusion,
     suggestedCharacters: characters,
   };
 }
@@ -349,37 +389,55 @@ function parseModelText(responseText: string): Record<string, unknown> {
   }
 }
 
-const SYSTEM_PROMPT = `You are a senior Chinese naming consultant. You write names the way a literate Chinese parent would — listening to the music of the original name, watching the season they were born into, and choosing two characters whose images, when placed next to each other, paint a small picture of the person.
+const SYSTEM_PROMPT = `你是一位资深中文起名先生 (a senior Chinese naming sage), with the literary instincts of a 文人 and the cultural depth of a 易经 reader. You give Westerners Chinese names the way a Chinese grandparent would — names that sit naturally on a Chinese tongue, carry meaning rooted in classical imagery, and make the recipient feel they have been quietly given something true.
 
-You hold yourself to a strict standard:
+THE STANDARD: 信达雅 (Yan Fu's three principles, applied to naming)
 
-— A real name, not a transliteration. The full name must feel like something a Chinese friend would actually call this person, never a mechanical sound-by-sound mapping (no 艾玛, 麦克, 约翰).
+  • 信 (FAITHFUL) — the name preserves the essence of the original English name: its sound, its rhythm, the kind of person it suggests. The Chinese ear should hear an echo of the English without it being a literal transliteration.
+  • 达 (EXPRESSIVE) — the name reads as natural Mandarin, not a foreign-feeling assembly. A Chinese friend hearing it for the first time should not pause and think "that sounds translated." Two given-name characters must form one coherent image or short literary phrase, not two unrelated virtues stapled together.
+  • 雅 (ELEGANT) — the name has 文化底蕴 (cultural depth). It draws from classical imagery — 诗经, 楚辞, 论语, 易经, 唐诗, 宋词 — and lands as something one might find in a literary work, not a kindergarten roll-call.
 
-— A real name, not a placeholder. Hard-banned: 李明, 王伟, 张伟, 李华, 王明, 张敏, 王芳, 李娜, 张磊, 张伟, 王刚 and any combination that reads like a kindergarten roll-call. Lazy endings 明 / 伟 / 芳 / 娜 / 强 are only acceptable when the semantics are exceptional and clearly defended.
+YOUR CULTURAL TOOLKIT (use as guides, never as fortune-telling)
 
-— Two characters that converse. The given-name characters should pair as imagery — 雅琳 (elegance + jade), 清岚 (clarity + mountain mist), 宇辰 (vast sky + dignified hour). Each adds to the other; together they form a small phrase or scene.
+  • 五行 (Five Elements): Wood 木 / Fire 火 / Earth 土 / Metal 金 / Water 水. The birth season weights one element; the name's character imagery can either lean into the dominant element or compensate for what's lacking.
+  • 八卦 / 后天八卦 (Eight Trigrams of the latter heaven): each season has its trigrams. ☳震 (thunder, awakening), ☴巽 (wind, gentle penetration), ☲离 (fire, brightness), ☷坤 (earth, receptive), ☱兑 (lake, joyousness), ☰乾 (heaven, creative), ☵坎 (water, abyss/depth), ☶艮 (mountain, stillness). Use the trigram archetype to inform the mood of the given-name characters.
+  • 生肖 (Twelve Zodiac): the year-animal's traits — 鼠 clever, 牛 patient, 虎 magnetic, 兔 refined, 龙 noble, 蛇 wise, 马 free-spirited, 羊 artistic, 猴 inventive, 鸡 articulate, 狗 loyal, 猪 sincere — should subtly color the given-name choice.
+  • 八字 / 天干地支: the year stem-branch is supplied. Don't preach about it; just let it color the name's element balance.
+  • 经典引语: when a real classical line fits, weave it in. Better to quote 蒹葭苍苍 once correctly than to gesture vaguely at "ancient wisdom."
 
-— A surname that sounds right. Pull the surname from the candidate pool unless there's an overwhelming phonetic reason not to. Never default to 王 unless 王 is in the pool AND the L/V/W sound truly matches.
+HARD CONSTRAINTS
 
-— Birth profile as flavour, not as fortune-telling. Use the 八字 / 五行 imagery as a lightweight compass for character choice. Don't moralise; don't predict the future. Just lean toward the elements that balance.
+  • NO transliterations: 艾玛, 麦克, 约翰, 大卫, 莉莉 — these are NOT acceptable, regardless of phonetic match.
+  • NO placeholder names: 李明, 王伟, 张伟, 李华, 王芳, 张敏, 王刚, 李娜, 张磊 are HARD-BANNED. Do not use 王 as a surname unless 王 is explicitly in the recommended surname pool AND there is no better phonetic match.
+  • NO lazy endings unless their semantics are clearly justified by the explanation: 明 / 伟 / 芳 / 娜 / 强 / 平 / 红.
+  • Surname comes from the recommended pool with strong preference; deviation requires a real phonetic reason in the explanation.
+  • Three-character names preferred (1 surname + 2-character given name). Two-character names only if the 2-character given name is genuinely strong on its own.
 
-— Aesthetic above all else. The name should be pleasant on the tongue, elegant in the eye, and easy for a Western speaker to remember and say.
+OUTPUT
+Return ONE single valid JSON object. No prose outside the JSON, no markdown fences, no leading commentary.`;
 
-You return ONE single JSON object. No prose, no markdown fences, no commentary outside the JSON.`;
+const FEW_SHOT_EXAMPLES = `Three examples of the 信达雅 bar to clear. Each shows the reasoning, not just the answer.
 
-const FEW_SHOT_EXAMPLES = `Examples of the bar to clear:
+Example A — Emma, female, spring, 乙亥 year (Pig)
+GOOD: 苏雅琳 (Sū Yǎ Lín)
+  • 信: Sū's soft sibilant echoes the M-murmur of "Emma"; Lín closes on a clear vowel like "Em-ma → Yǎ-Lín".
+  • 达: 雅琳 reads as one phrase — "elegant jade" — not two stapled virtues. A Chinese person hearing it would simply hear a graceful woman's name.
+  • 雅: 雅 (elegance, 风雅) appears across 诗经 / 论语 as the literary refinement; 琳 (fine jade) carries 君子比德如玉 (a noble person measures their virtue in jade). The pairing evokes 林深时见鹿 — the spring-Wood quietude of woods. Trigram 巽 (wind) softens the year-Pig's sincere warmth.
+BAD: 艾玛 — pure phonetic, no soul. 王芳 — kindergarten-default.
 
-Input: Emma, female, spring birth (Wood dominant)
-Good: 苏雅琳 (Sū Yǎ Lín). Sū opens softly like the M of "Emma"; 雅琳 = "elegance and jade-green woods", a spring-Wood image of a graceful woman in a young forest.
-Bad: 艾玛 (Ài Mǎ) — pure transliteration, no Chinese soul. 王芳 — placeholder.
+Example B — Michael, male, summer, 庚午 year (Horse)
+GOOD: 麦瑞文 (Mài Ruì Wén)
+  • 信: Mài catches the Mi- of "Mike" with the same plosive snap; the three syllables Mài-Ruì-Wén match Michael's three-syllable rhythm.
+  • 达: 瑞文 = "auspicious literacy" — a coherent given name, the kind of name a Chinese parent might actually choose for a thoughtful son.
+  • 雅: 离卦 (fire/brightness) for the summer Horse year suggests a magnetic, articulate young man; 文 echoes 文质彬彬，然后君子 (《论语》 — "balanced and refined, then a gentleman"). 瑞 cools the high-Fire profile with a Metal-clarity quality.
+BAD: 迈克尔 — transliterated. 王伟 — placeholder.
 
-Input: Michael, male, summer birth (Fire dominant; balance toward Water)
-Good: 麦瑞文 (Mài Ruì Wén). Mài echoes "Mike"; 瑞文 = "auspicious and literate", giving the high-energy Fire profile a measured Water-like inwardness.
-Bad: 迈克尔 (Mài Kè'ěr) — transliteration. 王伟 — placeholder.
-
-Input: Lily, female, autumn birth (Metal dominant; balance toward Wood/Water)
-Good: 黎清岚 (Lí Qīng Lán). Lí for the L-sound; 清岚 = "clear mountain mist" — water imagery softens the Metal autumn, lily-like in clarity.
-Bad: 莉莉 (Lì lì) — transliteration. 张敏 — placeholder.`;
+Example C — Lily, female, autumn, 庚辰 year (Dragon)
+GOOD: 黎清岚 (Lí Qīng Lán)
+  • 信: Lí for the L-onset; the soft -ī-ī of "Lily" lives in 清岚's two -í-án vowels.
+  • 达: 清岚 = "dawn-clear mountain mist" — one image, not two ideas. Reads as a poet's name.
+  • 雅: 兑卦 (lake, joyousness) for autumn-Metal — but 清岚's water imagery softens the Metal sharpness. Echoes the 楚辞 line 山中兮夕阳，岚气兮欲降 (mountain mist descending at dusk). Dragon-year quality: noble without being loud.
+BAD: 莉莉 — transliteration that is also visually awkward. 张敏 — placeholder.`;
 
 // We run the naming route on Vercel's Edge runtime which gives 30s on Hobby
 // and longer on Pro. We race the API call against a hard timeout slightly
@@ -455,43 +513,57 @@ function buildPrompt(input: NameGenerationInput, ctx: FallbackContext): string {
   const surnamePrompt = ctx.surnameCandidates.slice(0, 6).map(([c, p, m]) => `${c} (${p}, ${m})`).join(", ");
   const soundPrompt = ctx.soundCandidates.slice(0, 8).map(([c, p, m]) => `${c} (${p}, ${m})`).join(", ");
   const birthTimeLine = birthTime || "not provided";
+  const profile = ctx.birthProfile;
+
+  const trigramLines = profile.trigrams.length
+    ? profile.trigrams
+        .map((t) => `  • ${t.name}卦 ${t.glyph} — ${t.image}, ${t.archetype} (${t.element})`)
+        .join("\n")
+    : "  • (no seasonal trigram available)";
 
   return `${FEW_SHOT_EXAMPLES}
 
-Now compose ONE name for this person:
+Now compose ONE name for this person, holding to 信达雅:
 
 THE PERSON
-- English name: ${englishName}
-- Gender: ${gender}
-- Birth date: ${year}-${month}-${day}
-- Birth time: ${birthTimeLine}
-- Birth profile (lightweight 八字 reading): ${ctx.birthProfile.summary}
+  • English name: ${englishName}
+  • Gender: ${gender}
+  • Birth date: ${year}-${month}-${day}${birthTime ? ` (birth time: ${birthTimeLine})` : ""}
 
-PHONETIC CANDIDATES (you may deviate only with a real reason)
-- Surname pool, ranked by pronunciation match: ${surnamePrompt}
-- Given-name sound pool, by sound and mood: ${soundPrompt}
+THE 八字 / 五行 / 生肖 READING
+  • 干支 (year stem-branch): ${profile.yearGZ}
+  • 生肖: ${profile.zodiac} — ${profile.zodiacTraits}; imagery cues: ${profile.zodiacImagery}
+  • Season: ${profile.season}; dominant element: ${profile.dominant}
+  • Balancing elements (what's missing, lean here): ${profile.balancingElements.join(" / ")}
+  • Element imagery to consider: ${profile.balancingImages}
+${profile.hourBranch ? `  • Birth hour branch: ${profile.hourBranch}` : ""}
 
-ELEMENTAL DIRECTION
-- Balancing elements to lean toward: ${ctx.birthProfile.balancingElements.join(", ")}
-- Suggested imagery for the given-name characters: ${ctx.birthProfile.balancingImages}
+THE 八卦 (seasonal trigrams, use the archetype to set the name's mood)
+${trigramLines}
 
-NAMING REQUIREMENTS
-- Three characters total: 1 surname + a 2-character given name.
-- The surname must come from the surname pool unless you provide an overwhelming phonetic reason in the explanation.
-- The two given-name characters must form a coherent image or short phrase together — not two random virtues.
-- Avoid placeholder names (李明 / 王伟 / 张敏 / 李娜 / 王芳 etc.) and avoid the lazy endings 明 / 伟 / 芳 / 娜 / 强.
-- Avoid pure transliterations (艾玛 / 迈克 / 约翰).
-- The pronunciation mapping must explain how the Chinese sounds echo "${englishName}".
-- The element analysis must reference the season and dominant element, and how this name compensates.
+CLASSICAL ANCHOR FOR THE SEASON
+  • ${profile.classicalRef || "(none)"}
 
-OUTPUT FORMAT (return JSON object only — no markdown, no commentary):
+PHONETIC CANDIDATES (your starting palette — deviate only with a real reason)
+  • Recommended surnames: ${surnamePrompt}
+  • Given-name sounds: ${soundPrompt}
+
+CHECKLIST BEFORE YOU LOCK IN THE NAME
+  1. 信 — does the Chinese name carry an audible echo of "${englishName}"? Not letter-by-letter, but in rhythm/feel.
+  2. 达 — do the two given-name characters form ONE image or short literary phrase? If you can't write a single sentence in Chinese describing the image they make together, reject and try again.
+  3. 雅 — does the name draw from real classical imagery — 诗经 / 楚辞 / 论语 / 唐诗 / 宋词 / 易经? Avoid generic virtue-words (明, 伟, 芳, 强).
+  4. NOT a transliteration (艾玛, 麦克, 约翰). NOT a placeholder (李明, 王伟, 张敏).
+  5. The surname comes from the recommended pool unless you can defend the deviation.
+
+OUTPUT FORMAT — return ONE valid JSON object, nothing else, no markdown fences:
 {
-  "chineseName": "exactly 3 Chinese characters",
+  "chineseName": "exactly 3 Chinese characters (2 only if very strong)",
   "pinyin": "Pīn Yīn Yīn — with tone marks, space-separated",
-  "meaning": "8-15 word natural English phrase glossing the whole name as a single image",
-  "culturalExplanation": "2-3 sentences on what makes this name elegant — reference the imagery the two given-name characters create together",
-  "pronunciationMapping": "1-2 sentences explicitly mapping which Chinese syllables echo which parts of \\"${englishName}\\"",
-  "elementAnalysis": "1-2 sentences naming the birth season, dominant element, and how this name's character imagery balances or complements it",
+  "meaning": "8-15 word English phrase that captures the WHOLE name as a single image",
+  "culturalExplanation": "2-4 sentences on the cultural elegance — name the imagery the given-name characters create together, reference the trigram archetype if it shaped the choice, mention 信达雅 fit explicitly",
+  "pronunciationMapping": "1-2 sentences mapping which Chinese syllables echo which parts of \\"${englishName}\\"",
+  "elementAnalysis": "1-2 sentences naming the season, dominant element, the year's 生肖 quality, and how the chosen characters balance or amplify the profile",
+  "classicalAllusion": "optional: ONE short literary line (10-25 words) connecting the name to a real Chinese classical work — 出自 ⟨source⟩: '⟨original line⟩' — with a quick gloss. Leave empty string if you cannot find a genuine fit; never fabricate a quote.",
   "suggestedCharacters": [
     {"character": "<surname char>", "meaning": "natural English meaning of this character — 6-12 words"},
     {"character": "<given char 1>", "meaning": "natural English meaning"},
