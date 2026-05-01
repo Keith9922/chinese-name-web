@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import NamePronounce from "./NamePronounce";
+import CalligraphyStyles from "./CalligraphyStyles";
+import NameBrushVideo from "./NameBrushVideo";
 import PremiumUnlock from "./PremiumUnlock";
 import FeedbackWidget from "./feedback/FeedbackWidget";
 
@@ -17,6 +19,7 @@ interface NameResultProps {
     culturalExplanation: string;
     pronunciationMapping: string;
     elementAnalysis: string;
+    classicalAllusion?: string;
     suggestedCharacters: { character: string; meaning: string }[];
   };
   gender?: "male" | "female" | "other";
@@ -129,10 +132,34 @@ export default function NameResult({ result, gender }: NameResultProps) {
               <span className="italic">“{result.meaning}”</span>
             </motion.p>
 
+            {result.classicalAllusion && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.75 }}
+                className="mx-auto mt-5 max-w-xl"
+              >
+                <div className="relative inline-flex flex-col items-center gap-2 px-6 py-3">
+                  {/* Decorative side rules */}
+                  <span className="absolute left-0 top-1/2 h-px w-4 -translate-y-1/2 bg-amber-700/30" />
+                  <span className="absolute right-0 top-1/2 h-px w-4 -translate-y-1/2 bg-amber-700/30" />
+                  <span
+                    className="text-[10px] uppercase tracking-[0.4em] text-amber-700/70"
+                    style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                  >
+                    典 · Classical Allusion
+                  </span>
+                  <p className="text-sm leading-relaxed text-stone-700 italic">
+                    {result.classicalAllusion}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.75 }}
+              transition={{ delay: 0.85 }}
             >
               <NamePronounce
                 chineseName={result.chineseName}
@@ -191,11 +218,31 @@ export default function NameResult({ result, gender }: NameResultProps) {
             </div>
           </motion.div>
 
-          {/* Three explanation columns */}
+          {/* Brushstroke video — watch the name drawn stroke-by-stroke */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1 }}
+            className="mt-14"
+          >
+            <NameBrushVideo chineseName={result.chineseName} />
+          </motion.div>
+
+          {/* Calligraphy styles showcase */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2 }}
+            className="mt-8"
+          >
+            <CalligraphyStyles chineseName={result.chineseName} />
+          </motion.div>
+
+          {/* Three explanation columns */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3 }}
             className="mt-14 grid gap-5 md:grid-cols-3"
           >
             <ExplainCard label="文化 Cultural" tone="red">
