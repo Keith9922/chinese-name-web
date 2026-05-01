@@ -1,0 +1,16 @@
+{
+  "name": "ink-name-backend",
+  "version": "1.0.0",
+  "description": "Ink Name AI naming backend — runs the long MiniMax call without Vercel's serverless timeout limits.",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "private": true,
+  "dependencies": {}
+}
