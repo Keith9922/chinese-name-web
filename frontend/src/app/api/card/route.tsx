@@ -9,14 +9,25 @@ interface Params {
   classicalAllusion?: string;
 }
 
-// Font sources — Google Fonts for the Chinese display + a serif for the
-// English bits. Loaded once per cold start by the Edge runtime.
-const FONT_NOTO_SERIF_SC =
-  "https://fonts.gstatic.com/s/notoserifsc/v50/H4cyBXePl9DZ0Xe7gG9cyOj7uK2-n-D2rd4FYQ.ttf";
-const FONT_CORMORANT =
-  "https://fonts.gstatic.com/s/cormorantgaramond/v18/co3bmX5slCNuHLi8bLeY9MK7whWMhyjornFLsS6V7w.ttf";
-const FONT_MA_SHAN =
-  "https://fonts.gstatic.com/s/mashanzheng/v10/NaPecZTRCLxvwo41b4gvzkXaRMTsDIRSfr0.ttf";
+// We resolve fonts at runtime by hitting Google Fonts CSS — version-pinned
+// .ttf URLs (the previous approach) silently 404 when Google bumps the
+// version, and @vercel/og then returns an empty 200 instead of erroring.
+// CSS-resolution is robust to those bumps.
+//
+// Sending an old User-Agent forces Google to return TTF instead of WOFF2
+// (satori, which @vercel/og uses, can't decode WOFF2).
+const OLD_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_0) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1";
+
+async function fetchGoogleFontTtf(family: string, weight = 400): Promise<ArrayBuffer> {
+  const cssUrl = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, "+")}:wght@${weight}&display=swap`;
+  const css = await fetch(cssUrl, { headers: { "User-Agent": OLD_UA } }).then((r) => r.text());
+  const match = css.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/);
+  if (!match) throw new Error(`Could not resolve font URL for ${family}`);
+  const fontRes = await fetch(match[1]);
+  if (!fontRes.ok) throw new Error(`Font fetch failed for ${family}: ${fontRes.status}`);
+  return fontRes.arrayBuffer();
+}
 
 let cached:
   | { notoSerif: ArrayBuffer; cormorant: ArrayBuffer; maShan: ArrayBuffer }
@@ -25,9 +36,9 @@ let cached:
 async function loadFonts() {
   if (cached) return cached;
   const [notoSerif, cormorant, maShan] = await Promise.all([
-    fetch(FONT_NOTO_SERIF_SC).then((r) => r.arrayBuffer()),
-    fetch(FONT_CORMORANT).then((r) => r.arrayBuffer()),
-    fetch(FONT_MA_SHAN).then((r) => r.arrayBuffer()),
+    fetchGoogleFontTtf("Noto Serif SC", 700),
+    fetchGoogleFontTtf("Cormorant Garamond", 500),
+    fetchGoogleFontTtf("Ma Shan Zheng", 400),
   ]);
   cached = { notoSerif, cormorant, maShan };
   return cached;
@@ -51,6 +62,19 @@ const STYLE_FONT_FAMILY: Record<string, string> = {
 };
 
 export async function GET(request: Request) {
+  try {
+    return await renderCard(request);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[card] render failed:", message);
+    return new Response(JSON.stringify({ error: "Card render failed", detail: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+async function renderCard(request: Request) {
   const url = new URL(request.url);
   const params = getParams(url);
   if (!params) {
