@@ -321,6 +321,7 @@ export default function NameResult({ result, gender }: NameResultProps) {
         chineseName={result.chineseName}
         pinyin={result.pinyin}
         meaning={result.meaning}
+        classicalAllusion={result.classicalAllusion}
       />
     </div>
   );

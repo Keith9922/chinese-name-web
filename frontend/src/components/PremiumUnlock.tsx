@@ -10,6 +10,7 @@ interface PremiumUnlockProps {
   chineseName: string;
   pinyin: string;
   meaning: string;
+  classicalAllusion?: string;
 }
 
 function PremiumFeature({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
@@ -62,6 +63,7 @@ export default function PremiumUnlock({
   chineseName,
   pinyin,
   meaning,
+  classicalAllusion,
 }: PremiumUnlockProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<PaidPlanId>("signature");
   const [loadingPlanId, setLoadingPlanId] = useState<PaidPlanId | null>(null);
@@ -85,6 +87,7 @@ export default function PremiumUnlock({
       url.searchParams.set("chinese_name", chineseName);
       url.searchParams.set("pinyin", pinyin);
       url.searchParams.set("meaning", meaning);
+      if (classicalAllusion) url.searchParams.set("classical_allusion", classicalAllusion);
       window.location.href = url.toString();
     }, 120);
   };
