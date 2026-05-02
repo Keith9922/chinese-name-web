@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOrderEmail } from "@/lib/server/email-template";
 import { signDownloadUrl } from "@/lib/server/download-signing";
+import { composeBlessing } from "@/lib/server/blessing";
 
 // Gumroad's "Ping" sends application/x-www-form-urlencoded by default.
 // We accept both that and JSON for safety.
@@ -148,6 +149,19 @@ export async function POST(request: NextRequest) {
   previewQuery.set("preview", "1");
   const previewImageUrl = `${siteUrl}/api/card?${previewQuery.toString()}`;
 
+  // Compose a one-of-one poetic line for this specific name. Best-effort
+  // — if MiniMax is slow or unavailable, the email still ships without
+  // the blessing block.
+  const blessing = await composeBlessing({
+    chineseName,
+    pinyin,
+    meaning,
+    classicalAllusion: classicalAllusion || undefined,
+  });
+  if (blessing) {
+    console.log(`[gumroad-webhook] blessing composed for ${chineseName}: ${blessing.chinese} (${blessing.source})`);
+  }
+
   // Build + send the email
   const { subject, html, text } = buildOrderEmail({
     chineseName,
@@ -161,11 +175,19 @@ export async function POST(request: NextRequest) {
     svgVerticalUrl: kind === "signature" ? svgVerticalUrl : undefined,
     brandSiteUrl: siteUrl,
     supportEmail: process.env.SUPPORT_EMAIL ?? "hello@ink-name.app",
+    blessing: blessing ?? undefined,
   });
 
   const emailResult = await sendDeliveryEmail({ to: email, subject, html, text });
 
   // Mirror to Lark even if email failed, so the seller has a record
+  const noteParts: string[] = [];
+  if (blessing) {
+    noteParts.push(`题词: ${blessing.chinese} — ${blessing.source}`);
+  }
+  if (emailResult.error) {
+    noteParts.push(`Email error: ${emailResult.error}`);
+  }
   await safeMirrorToLark({
     email,
     permalink: permalink!,
@@ -175,7 +197,7 @@ export async function POST(request: NextRequest) {
     meaning,
     saleId: String(payload.sale_id ?? ""),
     emailDelivered: emailResult.ok,
-    emailError: emailResult.error,
+    emailError: noteParts.join(" | "),
   });
 
   if (!emailResult.ok) {

@@ -17,6 +17,8 @@ interface BuildEmailParams {
   svgVerticalUrl?: string;
   brandSiteUrl: string;
   supportEmail: string;
+  /** Optional one-of-one blessing line composed for this specific name. */
+  blessing?: { chinese: string; source: string; english: string };
 }
 
 export function buildOrderEmail(p: BuildEmailParams): { subject: string; html: string; text: string } {
@@ -30,6 +32,9 @@ export function buildOrderEmail(p: BuildEmailParams): { subject: string; html: s
     `Your Chinese name: ${p.chineseName} (${p.pinyin})`,
     `Meaning: ${p.meaning}`,
     p.classicalAllusion ? `Classical allusion: ${p.classicalAllusion}` : null,
+    p.blessing
+      ? `\nA line for you: ${p.blessing.chinese}${p.blessing.source ? ` (${p.blessing.source})` : ""}\n  ${p.blessing.english}`
+      : null,
     ``,
     `📄 HD calligraphy card (PNG):`,
     `   ${p.cardUrl}`,
@@ -98,6 +103,23 @@ export function buildOrderEmail(p: BuildEmailParams): { subject: string; html: s
               ? `<tr><td style="padding:0 40px 24px;text-align:center;">
                    <div style="font-size:11px;letter-spacing:0.4em;color:#a8770a;text-transform:uppercase;margin-bottom:6px;">典 · Classical Allusion</div>
                    <div style="font-size:13px;color:#3a2a1f;line-height:1.6;font-style:italic;">${escapeHtml(p.classicalAllusion)}</div>
+                 </td></tr>`
+              : ""
+          }
+
+          ${
+            p.blessing
+              ? `<tr><td style="padding:0 40px 28px;">
+                   <div style="background:linear-gradient(180deg,#fdf6e6 0%,#f3e4c2 100%);border-radius:14px;padding:28px 28px 24px;text-align:center;border:1px solid rgba(140,100,60,0.18);">
+                     <div style="font-size:11px;letter-spacing:0.4em;color:#a8770a;text-transform:uppercase;margin-bottom:14px;">题词 · A line for you</div>
+                     <div style="font-size:24px;font-weight:600;color:#1f1410;line-height:1.5;letter-spacing:0.04em;margin-bottom:10px;">
+                       ${escapeHtml(p.blessing.chinese)}
+                     </div>
+                     ${p.blessing.source ? `<div style="font-size:12px;color:#7c2d12;letter-spacing:0.06em;margin-bottom:14px;font-style:italic;">— ${escapeHtml(p.blessing.source)}</div>` : ""}
+                     <div style="font-size:13px;color:#3a2a1f;line-height:1.6;font-style:italic;max-width:420px;margin:0 auto;">
+                       ${escapeHtml(p.blessing.english)}
+                     </div>
+                   </div>
                  </td></tr>`
               : ""
           }

@@ -173,7 +173,20 @@ export default function NameForm() {
                     id="birthDate"
                     type="date"
                     value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
+                    // min/max keep the year input clamped to a sensible
+                    // range — without these, Chrome's date input lets you
+                    // type past 4 digits in the year slot and you end up
+                    // with values like "199612-MM-DD".
+                    min="1900-01-01"
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      // Native date inputs only fire change on a valid
+                      // YYYY-MM-DD or empty. Defensive guard regardless.
+                      if (!v || /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                        setBirthDate(v);
+                      }
+                    }}
                     required
                     className="h-12 rounded-xl border-stone-300 bg-stone-50/70 text-stone-900 focus:border-amber-500 focus:ring-amber-200 [color-scheme:light]"
                   />
