@@ -226,7 +226,12 @@ export default function NameResult({ result, gender }: NameResultProps) {
             transition={{ delay: 1.1 }}
             className="mt-14"
           >
-            <NameBrushVideo chineseName={result.chineseName} />
+            <NameBrushVideo
+              chineseName={result.chineseName}
+              pinyin={result.pinyin}
+              meaning={result.meaning}
+              classicalAllusion={result.classicalAllusion}
+            />
           </motion.div>
 
           {/* Calligraphy styles showcase */}
