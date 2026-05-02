@@ -4,6 +4,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, ImageIcon, FileCode2, Film } from "lucide-react";
 import { PAID_PLANS } from "@/lib/pricing";
+import {
+  applyInviteCodeToCheckoutUrl,
+  getStoredInviteCode,
+} from "@/lib/invite-code";
 
 interface Props {
   chineseName: string;
@@ -46,6 +50,7 @@ export default function NameDownloads({
     url.searchParams.set("pinyin", pinyin);
     url.searchParams.set("meaning", meaning);
     if (classicalAllusion) url.searchParams.set("classical_allusion", classicalAllusion);
+    applyInviteCodeToCheckoutUrl(url, getStoredInviteCode());
     window.location.href = url.toString();
   };
 

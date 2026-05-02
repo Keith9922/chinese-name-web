@@ -2,6 +2,7 @@ import SiteHeader from "@/components/shared/SiteHeader";
 import SiteFooter from "@/components/shared/SiteFooter";
 import InkBackdrop from "@/components/shared/InkBackdrop";
 import InkTrail from "@/components/shared/InkTrail";
+import InviteCodeBanner from "@/components/shared/InviteCodeBanner";
 import HeroInk from "@/components/landing/HeroInk";
 import NameTickerMarquee from "@/components/landing/NameTickerMarquee";
 import NameShowcase from "@/components/landing/NameShowcase";
@@ -16,6 +17,7 @@ export default function LandingPage() {
       <InkBackdrop intensity="rich" />
       <InkTrail />
       <SiteHeader variant="landing" />
+      <InviteCodeBanner />
       <main className="relative">
         <HeroInk />
         <NameTickerMarquee />

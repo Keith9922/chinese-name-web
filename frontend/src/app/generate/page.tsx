@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import SiteHeader from "@/components/shared/SiteHeader";
 import SiteFooter from "@/components/shared/SiteFooter";
 import InkBackdrop from "@/components/shared/InkBackdrop";
+import InviteCodeBanner from "@/components/shared/InviteCodeBanner";
 import NameForm from "@/components/NameForm";
 
 export default function GeneratePage() {
@@ -11,6 +12,7 @@ export default function GeneratePage() {
     <div className="relative min-h-screen overflow-x-hidden bg-[#fbf6ee] text-stone-900">
       <InkBackdrop intensity="soft" />
       <SiteHeader variant="app" />
+      <InviteCodeBanner />
 
       <main className="relative pb-24 pt-32">
         <section className="relative px-4">

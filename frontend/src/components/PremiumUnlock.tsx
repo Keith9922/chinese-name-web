@@ -5,6 +5,10 @@ import { motion } from "framer-motion";
 import { Crown, Download, Sparkles, Shield, Zap, Heart, Star, type LucideIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { PAID_PLANS, type PaidPlanId } from "@/lib/pricing";
+import {
+  applyInviteCodeToCheckoutUrl,
+  getStoredInviteCode,
+} from "@/lib/invite-code";
 
 interface PremiumUnlockProps {
   chineseName: string;
@@ -88,6 +92,7 @@ export default function PremiumUnlock({
       url.searchParams.set("pinyin", pinyin);
       url.searchParams.set("meaning", meaning);
       if (classicalAllusion) url.searchParams.set("classical_allusion", classicalAllusion);
+      applyInviteCodeToCheckoutUrl(url, getStoredInviteCode());
       window.location.href = url.toString();
     }, 120);
   };
