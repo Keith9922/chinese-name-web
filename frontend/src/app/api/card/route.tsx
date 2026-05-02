@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { verifyDownloadSig } from "@/lib/server/download-signing";
 
 export const runtime = "edge";
 
@@ -84,9 +85,22 @@ async function renderCard(request: Request) {
   const styleParam = url.searchParams.get("style") ?? "kaishu";
   const fontFamily = STYLE_FONT_FAMILY[styleParam] ?? STYLE_FONT_FAMILY.default;
 
+  // Paywall: any URL without a valid HMAC signature gets a watermarked
+  // preview with reduced size. Email links (which include `sig`) get the
+  // full-resolution clean version.
+  const sig = url.searchParams.get("sig");
+  const isPaid = await verifyDownloadSig(sig, {
+    name: params.chineseName,
+    pinyin: params.pinyin,
+    meaning: params.meaning,
+    allusion: params.classicalAllusion ?? "",
+    style: styleParam,
+  });
+
   const { notoSerif, cormorant, maShan } = await loadFonts();
 
   const { chineseName, pinyin, meaning, classicalAllusion } = params;
+  const filename = `${chineseName}_keepsake.png`;
 
   return new ImageResponse(
     (
@@ -307,6 +321,74 @@ async function renderCard(request: Request) {
             ink-name.vercel.app
           </div>
         </div>
+
+        {/* Sample watermark — only on non-paid previews */}
+        {!isPaid && (
+          <>
+            {/* Big diagonal SAMPLE text, repeated three times for coverage */}
+            {[
+              { top: -80, rotate: -22 },
+              { top: 600, rotate: -22 },
+              { top: 1280, rotate: -22 },
+            ].map((s, i) => (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  top: s.top,
+                  left: 0,
+                  right: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                  transform: `rotate(${s.rotate}deg)`,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "cormorant-garamond",
+                    fontSize: 240,
+                    fontWeight: 700,
+                    color: "rgba(162, 36, 25, 0.32)",
+                    letterSpacing: 32,
+                    display: "flex",
+                  }}
+                >
+                  SAMPLE · SAMPLE · SAMPLE
+                </div>
+              </div>
+            ))}
+            {/* Solid banner top */}
+            <div
+              style={{
+                position: "absolute",
+                top: 32,
+                left: 60,
+                right: 60,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "cormorant-garamond",
+                  fontSize: 28,
+                  fontWeight: 600,
+                  color: "#fbf2e2",
+                  letterSpacing: 6,
+                  background: "linear-gradient(135deg, #c2392c 0%, #7e1810 100%)",
+                  padding: "12px 32px",
+                  borderRadius: 999,
+                  display: "flex",
+                  boxShadow: "0 6px 16px -8px rgba(126, 24, 16, 0.5)",
+                }}
+              >
+                PREVIEW · clean HD version comes with the Keepsake card
+              </div>
+            </div>
+          </>
+        )}
       </div>
     ),
     {
@@ -317,6 +399,14 @@ async function renderCard(request: Request) {
         { name: "cormorant-garamond", data: cormorant, style: "normal", weight: 500 },
         { name: "ma-shan-zheng", data: maShan, style: "normal", weight: 400 },
       ],
+      headers: isPaid
+        ? {
+            "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+            "Cache-Control": "public, max-age=86400",
+          }
+        : {
+            "Cache-Control": "public, max-age=3600",
+          },
     },
   );
 }
