@@ -41,14 +41,22 @@ HARD CONSTRAINTS
 
 OUTPUT: ONE valid JSON object only. No prose outside the JSON, no markdown fences.`;
 
-const FEW_SHOT_EXAMPLES = `One example of the 信达雅 bar to clear:
+const FEW_SHOT_EXAMPLES = `Two examples of the 信达雅 bar to clear:
 
-Emma, female, spring (Wood dominant), 乙亥 year (Pig)
-GOOD: 苏雅琳 (Sū Yǎ Lín)
-  • 信: Sū's soft sibilant carries the M-murmur of "Emma"; -ǎ-Lín echoes "Em-ma" rhythm.
-  • 达: 雅琳 reads as one phrase — "elegant jade" — not two stapled virtues.
-  • 雅: 雅 (风雅 in 诗经/论语) + 琳 (fine jade, recalling 君子比德如玉). Trigram 巽 (wind) softens the Pig-year sincerity.
-BAD: 艾玛 (pure transliteration) / 王芳 (placeholder).`;
+Example A — full name (姓 mapped from family name):
+  Input: "Emma Carter", female, spring (Wood dominant), 乙亥 year (Pig)
+  GOOD: 柯雅琳 (Kē Yǎ Lín)
+    • 信: 柯 (Kē) takes its initial from "Carter"; 雅琳 echoes the rhythm of "Emma".
+    • 达: 雅琳 reads as one phrase — "elegant jade" — not two stapled virtues.
+    • 雅: 雅 (风雅 in 诗经/论语) + 琳 (fine jade, recalling 君子比德如玉). Trigram 巽 (wind) softens the Pig-year sincerity.
+  BAD: 艾玛卡特 (transliterating both halves) / 王芳 (placeholder, ignores "Carter").
+
+Example B — only a given name provided (no family name):
+  Input: "Emma" (no last name), female, spring, 乙亥 year (Pig)
+  GOOD: 苏雅琳 (Sū Yǎ Lín)
+    • 信: with no family name to map, 苏 is a graceful pool surname; the focus falls on 雅琳 echoing "Emma" in feel.
+    • 达 / 雅: same as Example A.
+  Note: in this mode you may also return a 2-character given-name-only result (e.g. 雅琳) if it reads more naturally than appending a forced surname.`;
 
 function formatGender(gender) {
   if (gender === "male") return "male";
@@ -56,13 +64,25 @@ function formatGender(gender) {
   return "any";
 }
 
-function normalizeEnglishName(s) {
+function normalizeAscii(s) {
   return String(s ?? "").toLowerCase().replace(/[^a-z]/g, "");
 }
 
-function buildSurnameCandidates(normalized) {
-  const initial = normalized.slice(0, 1) || "l";
-  return SURNAME_CANDIDATES[initial] ?? SURNAME_CANDIDATES.l;
+// Split "Emma Carter" → { given: "Emma", family: "Carter" }; "Mary Jane Watson"
+// → { given: "Mary Jane", family: "Watson" }; "Emma" alone → no family.
+function parseEnglishName(raw) {
+  const trimmed = String(raw ?? "").trim();
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length <= 1) {
+    return { given: tokens[0] ?? "", family: null, hasFamily: false };
+  }
+  const family = tokens[tokens.length - 1];
+  const given = tokens.slice(0, -1).join(" ");
+  return { given, family, hasFamily: true };
+}
+
+function buildSurnameCandidates(seedLetter) {
+  return SURNAME_CANDIDATES[seedLetter] ?? SURNAME_CANDIDATES.l;
 }
 
 function buildSoundCandidates(normalized, gender) {
@@ -185,6 +205,16 @@ function buildPrompt(input, ctx) {
     ? profile.trigrams.map((t) => `  • ${t.name}卦 ${t.glyph} — ${t.image}, ${t.archetype} (${t.element})`).join("\n")
     : "  • (no seasonal trigram available)";
 
+  const nameRoleBlock = ctx.parsedName.hasFamily
+    ? `THE NAME (full name provided)
+  • Given / first name: ${ctx.parsedName.given}
+  • Family / last name: ${ctx.parsedName.family}
+  • Naming rule: derive the Chinese 姓 from the phonetic root of "${ctx.parsedName.family}" — pick a real Chinese surname whose initial sound (or close cognate) echoes "${ctx.parsedName.family}". The two given-name characters should echo the sound and feel of "${ctx.parsedName.given}". The recommended surnames below are anchored on "${ctx.parsedName.family}" — strongly prefer one of them.`
+    : `THE NAME (only a given name provided — no family name)
+  • Given / first name: ${ctx.parsedName.given || englishName}
+  • Family / last name: (not provided)
+  • Naming rule: the visitor did not provide a family name, so there is no surname to phonetically map. Pick a 姓 from the recommended pool that pairs gracefully with the given-name sound; the focus of 信 (faithfulness) falls on the two given-name characters echoing "${ctx.parsedName.given || englishName}". A 2-character given-name-only output is acceptable in this case if it reads more naturally than appending a forced surname.`;
+
   return `${FEW_SHOT_EXAMPLES}
 
 Now compose ONE name for this person, holding to 信达雅:
@@ -193,6 +223,8 @@ THE PERSON
   • English name: ${englishName}
   • Gender: ${gender}
   • Birth date: ${year}-${month}-${day}${birthTime ? ` (birth time: ${birthTimeLine})` : ""}
+
+${nameRoleBlock}
 
 THE 八字 / 五行 / 生肖 READING
   • 干支 (year stem-branch): ${profile.yearGZ}
@@ -213,7 +245,9 @@ PHONETIC CANDIDATES (your starting palette — deviate only with a real reason)
   • Given-name sounds: ${soundPrompt}
 
 CHECKLIST BEFORE YOU LOCK IN THE NAME
-  1. 信 — does the Chinese name carry an audible echo of "${englishName}"? Not letter-by-letter, but in rhythm/feel.
+  1. 信 — ${ctx.parsedName.hasFamily
+      ? `the Chinese 姓 echoes "${ctx.parsedName.family}", and the two given-name characters echo "${ctx.parsedName.given}"`
+      : `the Chinese name (姓 + given) carries an audible echo of "${englishName}"`} — not letter-by-letter, but in rhythm/feel.
   2. 达 — do the two given-name characters form ONE image or short literary phrase? If you can't write a single sentence in Chinese describing the image they make together, reject and try again.
   3. 雅 — does the name draw from real classical imagery — 诗经 / 楚辞 / 论语 / 唐诗 / 宋词 / 易经? Avoid generic virtue-words (明, 伟, 芳, 强).
   4. NOT a transliteration (艾玛, 麦克, 约翰). NOT a placeholder (李明, 王伟, 张敏).
@@ -304,7 +338,8 @@ function isGenericResult(parsed) {
 }
 
 function buildFallbackName(ctx) {
-  const seed = [...ctx.normalizedName].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) || 1;
+  const seedSource = ctx.normalizedFamily || ctx.normalizedGiven;
+  const seed = [...seedSource].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) || 1;
   const surnamePool = ctx.surnameCandidates.slice(0, 2).length > 0 ? ctx.surnameCandidates.slice(0, 2) : ctx.surnameCandidates;
   const sounds = ctx.soundCandidates;
   const surname = surnamePool[seed % surnamePool.length];
@@ -392,14 +427,25 @@ function normalizeResponse(parsed, ctx) {
 }
 
 export async function generateName(input) {
-  const normalized = normalizeEnglishName(input.englishName);
-  const surnameCandidates = buildSurnameCandidates(normalized);
-  const soundCandidates = buildSoundCandidates(normalized, formatGender(input.gender));
+  const parsedName = parseEnglishName(input.englishName);
+  const normalizedGiven = normalizeAscii(parsedName.given);
+  const normalizedFamily = normalizeAscii(parsedName.family ?? "");
+  // Surname seeds on the family-name's first letter when given (so "Carter" →
+  // 蔡/柯/曹), otherwise the given-name's letter as a graceful fallback.
+  const surnameSeedLetter =
+    (normalizedFamily.slice(0, 1) || normalizedGiven.slice(0, 1) || "l");
+  const surnameCandidates = buildSurnameCandidates(surnameSeedLetter);
+  const soundCandidates = buildSoundCandidates(
+    normalizedGiven || normalizedFamily,
+    formatGender(input.gender),
+  );
   const birthProfile = buildBirthProfile(input.birthDate, input.birthTime);
 
   const ctx = {
     englishName: input.englishName,
-    normalizedName: normalized,
+    parsedName,
+    normalizedGiven,
+    normalizedFamily,
     surnameCandidates,
     soundCandidates,
     birthProfile,

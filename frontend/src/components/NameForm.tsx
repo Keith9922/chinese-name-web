@@ -129,7 +129,10 @@ export default function NameForm() {
             </div>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-              <Field label="Your name" hint="The one you go by today.">
+              <Field
+                label="Your full name"
+                hint='Ideally <span class="font-medium text-stone-600">first + last</span> — your last name lets us derive a Chinese 姓 that sounds like you.'
+              >
                 <Input
                   id="englishName"
                   placeholder="e.g. Emma Carter"
@@ -138,6 +141,23 @@ export default function NameForm() {
                   required
                   className="h-12 rounded-xl border-stone-300 bg-stone-50/70 text-stone-900 placeholder:text-stone-400 focus:border-amber-500 focus:ring-amber-200"
                 />
+                {/* Inline nudge — only shown when the visitor entered a single
+                    token, e.g. "Emma" without "Carter". Soft, not blocking. */}
+                <AnimatePresence>
+                  {englishName.trim() &&
+                    englishName.trim().split(/\s+/).filter(Boolean).length === 1 && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.25 }}
+                        className="mt-1.5 text-[11px] leading-relaxed text-amber-700/90"
+                      >
+                        Tip: a last name (e.g. <span className="font-medium">{englishName.trim()} Carter</span>) gives a much
+                        truer 姓. We&apos;ll still write something for just &quot;{englishName.trim()}&quot; if you prefer.
+                      </motion.p>
+                    )}
+                </AnimatePresence>
               </Field>
 
               <Field label="Gender" hint="Used to fit the name's tone.">
