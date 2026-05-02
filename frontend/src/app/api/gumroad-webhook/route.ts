@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOrderEmail } from "@/lib/server/email-template";
+import { signDownloadUrl } from "@/lib/server/download-signing";
 
 // Gumroad's "Ping" sends application/x-www-form-urlencoded by default.
 // We accept both that and JSON for safety.
@@ -99,16 +100,53 @@ export async function POST(request: NextRequest) {
   }
 
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://ink-name.vercel.app").replace(/\/$/, "");
-  const baseQuery = new URLSearchParams({
+
+  // Sign every download URL so the routes can distinguish a paid email
+  // from someone hitting the API directly. Without `sig`, /api/card
+  // returns a watermarked preview and /api/svg returns 402.
+  const signedParams = {
+    name: chineseName,
+    pinyin,
+    meaning,
+    allusion: classicalAllusion ?? "",
+    style: "kaishu",
+  };
+  let cardSig = "";
+  let svgSig = "";
+  try {
+    cardSig = await signDownloadUrl(signedParams);
+    svgSig = await signDownloadUrl({ ...signedParams, style: "kaishu" });
+  } catch (err) {
+    console.error("[gumroad-webhook] signing failed (DOWNLOAD_SIGNING_SECRET missing?):", err);
+    // Continue without signatures — buyers will hit the watermarked /
+    // paywalled responses, but the email at least goes out so we don't
+    // lose the order on a config oversight. Lark mirror will note it.
+  }
+
+  const cardQuery = new URLSearchParams({
     name: chineseName,
     pinyin,
     meaning,
   });
-  if (classicalAllusion) baseQuery.set("allusion", classicalAllusion);
+  if (classicalAllusion) cardQuery.set("allusion", classicalAllusion);
+  if (cardSig) cardQuery.set("sig", cardSig);
 
-  const cardUrl = `${siteUrl}/api/card?${baseQuery.toString()}`;
-  const svgHorizontalUrl = `${siteUrl}/api/svg?name=${encodeURIComponent(chineseName)}&orientation=horizontal`;
-  const svgVerticalUrl = `${siteUrl}/api/svg?name=${encodeURIComponent(chineseName)}&orientation=vertical`;
+  const svgQueryBase = new URLSearchParams({
+    name: chineseName,
+    pinyin,
+    meaning,
+  });
+  if (classicalAllusion) svgQueryBase.set("allusion", classicalAllusion);
+  if (svgSig) svgQueryBase.set("sig", svgSig);
+
+  const cardUrl = `${siteUrl}/api/card?${cardQuery.toString()}`;
+  const svgHorizontalUrl = `${siteUrl}/api/svg?${svgQueryBase.toString()}&orientation=horizontal`;
+  const svgVerticalUrl = `${siteUrl}/api/svg?${svgQueryBase.toString()}&orientation=vertical`;
+  // Inline preview thumbnail (the same card, low-res, so the buyer
+  // immediately *sees* what they paid for in the email body).
+  const previewQuery = new URLSearchParams(cardQuery);
+  previewQuery.set("preview", "1");
+  const previewImageUrl = `${siteUrl}/api/card?${previewQuery.toString()}`;
 
   // Build + send the email
   const { subject, html, text } = buildOrderEmail({
@@ -118,6 +156,7 @@ export async function POST(request: NextRequest) {
     classicalAllusion: classicalAllusion || undefined,
     productKind: kind,
     cardUrl,
+    previewImageUrl,
     svgHorizontalUrl: kind === "signature" ? svgHorizontalUrl : undefined,
     svgVerticalUrl: kind === "signature" ? svgVerticalUrl : undefined,
     brandSiteUrl: siteUrl,

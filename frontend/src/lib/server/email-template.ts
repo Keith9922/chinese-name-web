@@ -11,6 +11,8 @@ interface BuildEmailParams {
   classicalAllusion?: string;
   productKind: "keepsake" | "signature";
   cardUrl: string;
+  /** Optional URL pointing at a low-res inline preview of the same card. */
+  previewImageUrl?: string;
   svgHorizontalUrl?: string;
   svgVerticalUrl?: string;
   brandSiteUrl: string;
@@ -96,6 +98,19 @@ export function buildOrderEmail(p: BuildEmailParams): { subject: string; html: s
               ? `<tr><td style="padding:0 40px 24px;text-align:center;">
                    <div style="font-size:11px;letter-spacing:0.4em;color:#a8770a;text-transform:uppercase;margin-bottom:6px;">典 · Classical Allusion</div>
                    <div style="font-size:13px;color:#3a2a1f;line-height:1.6;font-style:italic;">${escapeHtml(p.classicalAllusion)}</div>
+                 </td></tr>`
+              : ""
+          }
+
+          ${
+            p.previewImageUrl
+              ? `<tr><td style="padding:24px 40px 8px;text-align:center;">
+                   <a href="${escapeHtml(p.cardUrl)}" style="display:inline-block;text-decoration:none;">
+                     <img src="${escapeHtml(p.previewImageUrl)}" alt="${escapeHtml(p.chineseName)} calligraphy card preview" width="520" style="display:block;width:100%;max-width:520px;height:auto;border-radius:14px;border:1px solid rgba(140,100,60,0.18);box-shadow:0 12px 30px -16px rgba(60,38,22,0.35);" />
+                   </a>
+                 </td></tr>
+                 <tr><td style="padding:0 40px 16px;text-align:center;">
+                   <div style="font-size:11px;color:#a8a29e;letter-spacing:0.18em;text-transform:uppercase;">↑ tap to download the full 2400 × 1600 version</div>
                  </td></tr>`
               : ""
           }
