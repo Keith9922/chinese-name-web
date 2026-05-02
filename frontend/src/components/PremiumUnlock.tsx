@@ -69,35 +69,24 @@ export default function PremiumUnlock({
 
   const selectedPlan = PAID_PLANS.find((plan) => plan.id === selectedPlanId) ?? PAID_PLANS[0];
 
-  const handleCheckout = async () => {
-    setLoadingPlanId(selectedPlanId);
+  const handleCheckout = () => {
     setError("");
-
-    try {
-      const response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          planId: selectedPlanId,
-          nameResult: { chineseName, pinyin, meaning },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create checkout session");
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
-      }
-    } catch {
-      setError("Unable to start checkout. Please try again.");
-    } finally {
-      setLoadingPlanId(null);
+    if (!selectedPlan.checkoutUrl) {
+      setError("Checkout link is not configured for this plan yet.");
+      return;
     }
+    setLoadingPlanId(selectedPlanId);
+    // External Gumroad checkout — keep a tiny delay so the spinner is visible
+    // and the user doesn't think nothing happened on slower devices.
+    window.setTimeout(() => {
+      // Carry the generated name through Gumroad's custom-fields query so it
+      // appears on the receipt and lets us match purchases to results later.
+      const url = new URL(selectedPlan.checkoutUrl!);
+      url.searchParams.set("chinese_name", chineseName);
+      url.searchParams.set("pinyin", pinyin);
+      url.searchParams.set("meaning", meaning);
+      window.location.href = url.toString();
+    }, 120);
   };
 
   return (

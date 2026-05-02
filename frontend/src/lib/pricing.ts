@@ -15,7 +15,15 @@ export type PricingPlan = {
   ctaLabel: string;
   availableStyles: CardStyle[];
   resolutionLabel: string;
+  /** Where clicking "Unlock" should send the user. External Gumroad URL. */
+  checkoutUrl?: string;
 };
+
+// Centralised so adding a new plan only touches one place. Build with
+// `?wanted=true` so Gumroad jumps straight to the checkout view rather
+// than the product description page.
+const GUMROAD_KEEPSAKE = "https://6419390574794.gumroad.com/l/jaqhrg?wanted=true";
+const GUMROAD_SIGNATURE = "https://6419390574794.gumroad.com/l/kidcrz?wanted=true";
 
 export const PRICING_PLANS: PricingPlan[] = [
   {
@@ -48,9 +56,10 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Includes the classical allusion",
       "Instant unlock after payment",
     ],
-    ctaLabel: "Unlock Keepsake",
+    ctaLabel: "Get Keepsake",
     availableStyles: ["classical"],
     resolutionLabel: "2400 × 1600 PNG",
+    checkoutUrl: GUMROAD_KEEPSAKE,
   },
   {
     id: "signature",
@@ -68,9 +77,10 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Tattoo-ready SVG of your name",
       "Higher-resolution exports",
     ],
-    ctaLabel: "Unlock Signature",
+    ctaLabel: "Get Signature",
     availableStyles: ["classical", "modern", "seal"],
     resolutionLabel: "3200 × 2133 PNG",
+    checkoutUrl: GUMROAD_SIGNATURE,
   },
 ];
 
