@@ -8,6 +8,7 @@ import {
   applyInviteCodeToCheckoutUrl,
   getStoredInviteCode,
 } from "@/lib/invite-code";
+import InviteCodeField from "@/components/shared/InviteCodeField";
 
 interface Props {
   chineseName: string;
@@ -100,7 +101,11 @@ export default function NameDownloads({
         />
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-6 flex justify-center">
+        <InviteCodeField />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
         {KEEPSAKE && (
           <motion.button
             type="button"
