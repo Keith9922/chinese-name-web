@@ -4,6 +4,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, ImageIcon, FileCode2, Film } from "lucide-react";
 import { PAID_PLANS } from "@/lib/pricing";
+import {
+  applyInviteCodeToCheckoutUrl,
+  getStoredInviteCode,
+} from "@/lib/invite-code";
+import InviteCodeField from "@/components/shared/InviteCodeField";
 
 interface Props {
   chineseName: string;
@@ -46,6 +51,7 @@ export default function NameDownloads({
     url.searchParams.set("pinyin", pinyin);
     url.searchParams.set("meaning", meaning);
     if (classicalAllusion) url.searchParams.set("classical_allusion", classicalAllusion);
+    applyInviteCodeToCheckoutUrl(url, getStoredInviteCode());
     window.location.href = url.toString();
   };
 
@@ -95,7 +101,11 @@ export default function NameDownloads({
         />
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-6 flex justify-center">
+        <InviteCodeField />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
         {KEEPSAKE && (
           <motion.button
             type="button"

@@ -5,6 +5,11 @@ import { motion } from "framer-motion";
 import { Crown, Download, Sparkles, Shield, Zap, Heart, Star, type LucideIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { PAID_PLANS, type PaidPlanId } from "@/lib/pricing";
+import {
+  applyInviteCodeToCheckoutUrl,
+  getStoredInviteCode,
+} from "@/lib/invite-code";
+import InviteCodeField from "@/components/shared/InviteCodeField";
 
 interface PremiumUnlockProps {
   chineseName: string;
@@ -88,6 +93,7 @@ export default function PremiumUnlock({
       url.searchParams.set("pinyin", pinyin);
       url.searchParams.set("meaning", meaning);
       if (classicalAllusion) url.searchParams.set("classical_allusion", classicalAllusion);
+      applyInviteCodeToCheckoutUrl(url, getStoredInviteCode());
       window.location.href = url.toString();
     }, 120);
   };
@@ -299,6 +305,11 @@ export default function PremiumUnlock({
           {error && (
             <p className="text-sm text-red-500 mt-3 text-center">{error}</p>
           )}
+
+          {/* Invite code — collapsed by default, expands to a small input */}
+          <div className="mt-4 flex justify-center">
+            <InviteCodeField />
+          </div>
 
           {/* Social proof */}
           <div className="mt-6">
