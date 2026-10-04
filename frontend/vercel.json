@@ -13,6 +13,9 @@
     },
     "src/app/api/feedback/route.ts": {
       "maxDuration": 15
+    },
+    "src/app/api/generate-seal/route.ts": {
+      "maxDuration": 120
     }
   }
 }

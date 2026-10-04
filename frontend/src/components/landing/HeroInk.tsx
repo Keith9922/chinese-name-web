@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import MagneticWrap from "@/components/shared/MagneticWrap";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const ROTATING_SAMPLES = [
   { en: "Emma", zh: "苏雅琳", py: "Sū Yǎ Lín" },
@@ -202,7 +203,7 @@ export default function HeroInk() {
           >
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Free · no signup
+              {isSupabaseConfigured() ? "Free · one-click sign-in" : "Free · no signup"}
             </span>
             <span>~30 seconds</span>
             <span>八字 + 五行 informed</span>

@@ -6,6 +6,8 @@
 // is one of one — the kind of detail that turns a $6.99 digital
 // product into something they'd actually keep.
 
+import { logGmiCall } from "./gmi-log";
+
 const SYSTEM_PROMPT = `你是一位有深厚古典素养的中文文学顾问，受邀为每一位收到中文名字的客户题词。你只输出一行（极少数情况下两行）能与他们的名字呼应的诗句或经典文句，不解释。
 
 The brief
@@ -41,13 +43,13 @@ export interface Blessing {
 }
 
 export async function composeBlessing(args: ComposeArgs): Promise<Blessing | null> {
-  const apiKey = process.env.MINIMAX_API_KEY ?? process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GMI_API_KEY;
   if (!apiKey) {
-    console.warn("[blessing] MINIMAX_API_KEY not set, skipping");
+    console.warn("[blessing] GMI_API_KEY not set, skipping");
     return null;
   }
-  const apiBase = process.env.MINIMAX_API_BASE || "https://api.minimaxi.com";
-  const model = process.env.MINIMAX_MODEL || "MiniMax-M2";
+  const apiBase = process.env.GMI_BASE_URL || "https://api.gmi-serving.com/v1";
+  const model = process.env.GMI_DEFAULT_MODEL || "anthropic/claude-sonnet-4.6";
   const timeoutMs = Number(process.env.BLESSING_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
 
   const userPrompt = `Compose ONE blessing line for:
@@ -61,8 +63,9 @@ Hold to the brief. Return JSON only.`;
 
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), timeoutMs);
+  const startedAt = Date.now();
   try {
-    const res = await fetch(`${apiBase}/v1/text/chatcompletion_v2`, {
+    const res = await fetch(`${apiBase}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -79,18 +82,39 @@ Hold to the brief. Return JSON only.`;
       }),
       signal: ctrl.signal,
     });
+    const latencyMs = Date.now() - startedAt;
     if (!res.ok) {
       const text = await res.text();
-      console.warn(`[blessing] MiniMax HTTP ${res.status}: ${text.slice(0, 200)}`);
+      console.warn(`[blessing] GMI Cloud HTTP ${res.status}: ${text.slice(0, 200)}`);
+      logGmiCall({ step: "compose_blessing", modality: "text", model, latencyMs, ok: false, error: `HTTP ${res.status}` });
       return null;
     }
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
     const content = json.choices?.[0]?.message?.content?.trim() ?? "";
+    logGmiCall({
+      step: "compose_blessing",
+      modality: "text",
+      model,
+      latencyMs,
+      promptTokens: json.usage?.prompt_tokens,
+      completionTokens: json.usage?.completion_tokens,
+      ok: Boolean(content),
+      error: content ? undefined : "empty content",
+    });
     return parseBlessingResponse(content);
   } catch (err) {
     console.warn("[blessing] composer failed:", err instanceof Error ? err.message : err);
+    logGmiCall({
+      step: "compose_blessing",
+      modality: "text",
+      model,
+      latencyMs: Date.now() - startedAt,
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   } finally {
     clearTimeout(timeout);

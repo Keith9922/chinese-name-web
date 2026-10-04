@@ -11,6 +11,9 @@ import NameBrushVideo from "./NameBrushVideo";
 import NameDownloads from "./NameDownloads";
 import PremiumUnlock from "./PremiumUnlock";
 import FeedbackWidget from "./feedback/FeedbackWidget";
+import CalligraphyCard from "./CalligraphyCard";
+import SealDesign from "./SealDesign";
+import ModelUsagePanel from "./ModelUsagePanel";
 
 interface NameResultProps {
   result: {
@@ -22,6 +25,7 @@ interface NameResultProps {
     elementAnalysis: string;
     classicalAllusion?: string;
     suggestedCharacters: { character: string; meaning: string }[];
+    creationId?: string | null;
   };
   gender?: "male" | "female" | "other";
 }
@@ -166,6 +170,8 @@ export default function NameResult({ result, gender }: NameResultProps) {
                 chineseName={result.chineseName}
                 pinyin={result.pinyin}
                 gender={gender}
+                meaning={result.meaning}
+                culturalExplanation={result.culturalExplanation}
               />
             </motion.div>
 
@@ -237,6 +243,44 @@ export default function NameResult({ result, gender }: NameResultProps) {
             className="mt-8"
           >
             <CalligraphyStyles chineseName={result.chineseName} />
+          </motion.div>
+
+          {/* Crafted with AI — genuine ink-brush calligraphy + a personal seal,
+              each a real GMI Cloud image-edit call (not the Canvas/font
+              rendering above). Intentionally framed as a darker "showcase"
+              moment against the page's cream background — this contrast is
+              deliberate, not a style mismatch, and matches the same dark
+              treatment CalligraphyCard already uses in the post-checkout flow. */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.22 }}
+            className="mt-8 overflow-hidden rounded-3xl px-6 py-12 md:px-10"
+            style={{ background: "radial-gradient(circle at 30% 15%, #241812 0%, #120d0a 70%)" }}
+          >
+            <div className="text-center">
+              <p
+                className="text-[10px] uppercase tracking-[0.4em] text-amber-400/70"
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              >
+                工艺 · Crafted with AI
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
+                Two real GMI Cloud image models at work — one restyles your name into
+                genuine ink-brush calligraphy, the other carves it into a personal seal.
+              </p>
+            </div>
+            <div className="mt-10">
+              <CalligraphyCard
+                chineseName={result.chineseName}
+                pinyin={result.pinyin}
+                meaning={result.meaning}
+                creationId={result.creationId ?? undefined}
+              />
+            </div>
+            <div className="mx-auto mt-14 max-w-xs border-t border-zinc-800 pt-10">
+              <SealDesign chineseName={result.chineseName} creationId={result.creationId ?? undefined} />
+            </div>
           </motion.div>
 
           {/* Downloads (HD card + tattoo SVG) */}
@@ -314,6 +358,8 @@ export default function NameResult({ result, gender }: NameResultProps) {
           </motion.div>
         </div>
       </motion.div>
+
+      <ModelUsagePanel />
 
       <FeedbackWidget chineseName={result.chineseName} />
 

@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
   const previewImageUrl = `${siteUrl}/api/card?${previewQuery.toString()}`;
 
   // Compose a one-of-one poetic line for this specific name. Best-effort
-  // — if MiniMax is slow or unavailable, the email still ships without
+  // — if GMI Cloud is slow or unavailable, the email still ships without
   // the blessing block.
   const blessing = await composeBlessing({
     chineseName,

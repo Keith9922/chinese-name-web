@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pause, Play } from "lucide-react";
+import { Loader2, Pause, Play, Volume2 } from "lucide-react";
 
 interface Props {
   chineseName: string;
   pinyin: string;
   gender?: "male" | "female" | "other";
+  meaning?: string;
+  culturalExplanation?: string;
 }
 
 type State = "idle" | "playing" | "unsupported";
@@ -20,7 +22,13 @@ type State = "idle" | "playing" | "unsupported";
  * Why not server-side TTS: free, no API budget, no latency, and modern
  * macOS/Windows/Android voices for Mandarin are surprisingly good.
  */
-export default function NamePronounce({ chineseName, gender }: Props) {
+export default function NamePronounce({
+  chineseName,
+  pinyin,
+  gender,
+  meaning,
+  culturalExplanation,
+}: Props) {
   const [state, setState] = useState<State>("idle");
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -90,36 +98,180 @@ export default function NamePronounce({ chineseName, gender }: Props) {
     synth.speak(utt);
   };
 
-  if (state === "unsupported") return null;
+  return (
+    <div className="mt-5 flex flex-col items-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        {state !== "unsupported" && (
+          <motion.button
+            type="button"
+            onClick={togglePlay}
+            aria-label={state === "playing" ? "Pause pronunciation" : "Play pronunciation"}
+            whileTap={{ scale: 0.95 }}
+            className="group relative inline-flex h-11 items-center gap-2.5 rounded-full border border-stone-300/80 bg-white/80 pl-3 pr-5 text-sm text-stone-700 backdrop-blur transition-all duration-300 hover:border-amber-400 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgba(162,36,25,0.35)]"
+          >
+            <span
+              className="grid h-7 w-7 place-items-center rounded-full text-white"
+              style={{
+                background:
+                  "linear-gradient(135deg, #c2392c 0%, #7e1810 100%)",
+              }}
+            >
+              {state === "playing" ? (
+                <Pause className="h-3.5 w-3.5" />
+              ) : (
+                <Play className="h-3.5 w-3.5 translate-x-[1px]" />
+              )}
+            </span>
+            <span className="font-medium tracking-tight">
+              {state === "playing" ? "Listening" : "Hear your name"}
+            </span>
+            {state === "playing" && <SoundWaves />}
+          </motion.button>
+        )}
+
+        <AiAudioButton
+          mode="pronunciation"
+          label="Hear it spoken"
+          chineseName={chineseName}
+          pinyin={pinyin}
+        />
+
+        {meaning && culturalExplanation && (
+          <AiAudioButton
+            mode="narration"
+            label="Hear the meaning"
+            chineseName={chineseName}
+            pinyin={pinyin}
+            meaning={meaning}
+            culturalExplanation={culturalExplanation}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+type AiAudioState = "idle" | "loading" | "playing" | "paused" | "failed";
+
+interface AiAudioButtonProps {
+  mode: "pronunciation" | "narration";
+  label: string;
+  chineseName: string;
+  pinyin: string;
+  meaning?: string;
+  culturalExplanation?: string;
+}
+
+/**
+ * Fetches a real GMI Cloud TTS clip on first click (pronunciation or a
+ * spoken meaning narration) and plays it back with a plain <audio> element.
+ * Never shows a broken/error state to the end user — on any failure it
+ * quietly disappears, leaving the rest of the page (including the free
+ * browser-speech button above) fully functional.
+ */
+function AiAudioButton({
+  mode,
+  label,
+  chineseName,
+  pinyin,
+  meaning,
+  culturalExplanation,
+}: AiAudioButtonProps) {
+  const [state, setAiState] = useState<AiAudioState>("idle");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  if (state === "failed") return null;
+
+  const handleClick = async () => {
+    if (state === "loading") return;
+
+    // Already fetched — just toggle play/pause on the existing element.
+    if (audioRef.current && audioUrlRef.current) {
+      if (state === "playing") {
+        audioRef.current.pause();
+        setAiState("paused");
+      } else {
+        try {
+          await audioRef.current.play();
+          setAiState("playing");
+        } catch {
+          setAiState("failed");
+        }
+      }
+      return;
+    }
+
+    setAiState("loading");
+    try {
+      const res = await fetch("/api/generate-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chineseName,
+          pinyin,
+          mode,
+          meaning,
+          culturalExplanation,
+        }),
+      });
+      const data = (await res.json()) as { source?: string; audioUrl?: string };
+
+      if (!res.ok || data.source !== "gmi" || !data.audioUrl) {
+        setAiState("failed");
+        return;
+      }
+
+      audioUrlRef.current = data.audioUrl;
+      const audio = new Audio(data.audioUrl);
+      audio.onended = () => setAiState("paused");
+      audio.onerror = () => setAiState("failed");
+      audioRef.current = audio;
+
+      await audio.play();
+      setAiState("playing");
+    } catch {
+      setAiState("failed");
+    }
+  };
+
+  const isPlaying = state === "playing";
+  const isLoading = state === "loading";
 
   return (
-    <div className="mt-5 flex items-center justify-center gap-3">
-      <motion.button
-        type="button"
-        onClick={togglePlay}
-        aria-label={state === "playing" ? "Pause pronunciation" : "Play pronunciation"}
-        whileTap={{ scale: 0.95 }}
-        className="group relative inline-flex h-11 items-center gap-2.5 rounded-full border border-stone-300/80 bg-white/80 pl-3 pr-5 text-sm text-stone-700 backdrop-blur transition-all duration-300 hover:border-amber-400 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgba(162,36,25,0.35)]"
+    <motion.button
+      type="button"
+      onClick={handleClick}
+      disabled={isLoading}
+      aria-label={label}
+      whileTap={{ scale: 0.95 }}
+      className="group relative inline-flex h-11 items-center gap-2.5 rounded-full border border-stone-300/80 bg-white/80 pl-3 pr-5 text-sm text-stone-700 backdrop-blur transition-all duration-300 hover:border-amber-400 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgba(162,36,25,0.35)] disabled:cursor-wait disabled:opacity-70"
+    >
+      <span
+        className="grid h-7 w-7 place-items-center rounded-full text-white"
+        style={{
+          background: "linear-gradient(135deg, #7e1810 0%, #c2392c 100%)",
+        }}
       >
-        <span
-          className="grid h-7 w-7 place-items-center rounded-full text-white"
-          style={{
-            background:
-              "linear-gradient(135deg, #c2392c 0%, #7e1810 100%)",
-          }}
-        >
-          {state === "playing" ? (
-            <Pause className="h-3.5 w-3.5" />
-          ) : (
-            <Play className="h-3.5 w-3.5 translate-x-[1px]" />
-          )}
-        </span>
-        <span className="font-medium tracking-tight">
-          {state === "playing" ? "Listening" : "Hear your name"}
-        </span>
-        {state === "playing" && <SoundWaves />}
-      </motion.button>
-    </div>
+        {isLoading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : isPlaying ? (
+          <Pause className="h-3.5 w-3.5" />
+        ) : (
+          <Volume2 className="h-3.5 w-3.5" />
+        )}
+      </span>
+      <span className="font-medium tracking-tight">
+        {isLoading ? "Preparing…" : isPlaying ? "Listening" : label}
+      </span>
+      {isPlaying && <SoundWaves />}
+    </motion.button>
   );
 }
 

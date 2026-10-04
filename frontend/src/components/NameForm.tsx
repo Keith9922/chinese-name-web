@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import NameResult from "./NameResult";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export default function NameForm() {
   const [englishName, setEnglishName] = useState("");
@@ -27,6 +28,7 @@ export default function NameForm() {
     pronunciationMapping: string;
     elementAnalysis: string;
     suggestedCharacters: { character: string; meaning: string }[];
+    creationId?: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,6 +60,14 @@ export default function NameForm() {
           birthTime: birthTime || undefined,
         }),
       });
+
+      if (response.status === 401) {
+        // Session expired mid-visit — proxy.ts normally keeps signed-out
+        // visitors off this page entirely, so this only fires on a stale
+        // session. Send them to sign in and straight back here after.
+        window.location.href = "/login?next=%2Fgenerate";
+        return;
+      }
 
       if (!response.ok) throw new Error("Failed to generate name");
 
@@ -157,6 +167,26 @@ export default function NameForm() {
                         truer 姓. We&apos;ll still write something for just &quot;{englishName.trim()}&quot; if you prefer.
                       </motion.p>
                     )}
+                </AnimatePresence>
+
+                {/* Symmetric nudge for the opposite case — long names, several
+                    middle names, or a compound/particled surname ("van der
+                    Berg", "Al Rashid"). Reassures rather than asking the
+                    visitor to simplify their own name for us. */}
+                <AnimatePresence>
+                  {englishName.trim().split(/\s+/).filter(Boolean).length >= 3 && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-1.5 text-[11px] leading-relaxed text-stone-500"
+                    >
+                      Got a long name — middle names, or a two-word surname like{" "}
+                      <span className="italic">van der Berg</span>? Just type it in full; we&apos;ll work out which
+                      part to build the sound-match from and tell you exactly what we used.
+                    </motion.p>
+                  )}
                 </AnimatePresence>
               </Field>
 
@@ -265,7 +295,9 @@ export default function NameForm() {
               </Button>
 
               <p className="text-center text-xs text-stone-400">
-                Free · no signup · ~30 seconds · we don&apos;t store your details
+                {isSupabaseConfigured()
+                  ? "Free · ~30 seconds · saved to your account so you can find it again"
+                  : "Free · no signup · ~30 seconds · we don't store your details"}
               </p>
             </form>
           </div>
